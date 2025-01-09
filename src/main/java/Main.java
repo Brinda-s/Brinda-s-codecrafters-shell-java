@@ -1,4 +1,5 @@
 import java.util.Scanner;
+import java.util.Set;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -6,6 +7,11 @@ public class Main {
         System.out.print("$ ");
 
         Scanner scanner = new Scanner(System.in);
+        Set<String> builtins = new HashSet<>();
+        builtins.add("echo");
+        builtins.add("exit");
+        builtins.add("type");
+
         while(true){
             String input = scanner.nextLine().trim();
 
@@ -28,6 +34,26 @@ public class Main {
                 }
                 System.out.print("$ "); // Print the prompt for the next command
                 continue;
+            }
+
+            if(input.startsWith("type: ")){
+                String[] parts = input.split(" ",2);
+
+                if(parts.length>1){
+                    String command = parts[1];
+                    if(builtins.contains(command)){
+                        System.out.println(command + " is a shell builtin");
+                    }
+                    else{
+                        System.out.println(command + ":not found");
+                    }
+                }
+                else{
+                    System.out.println("type: not found");
+                }
+                System.out.println("$ ");
+                continue;
+                }
             }
         
 
