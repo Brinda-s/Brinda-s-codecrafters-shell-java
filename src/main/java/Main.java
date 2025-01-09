@@ -19,7 +19,7 @@ public class Main {
             }
 
             if(input.startsWith("echo ")){
-                String[] words = str.split(" ",2);
+                String[] words = input.split(" ",2);
 
                 if (words.length > 1) {
                     System.out.println(words[1]); // Print the part after "echo"
