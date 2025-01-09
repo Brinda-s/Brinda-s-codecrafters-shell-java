@@ -16,5 +16,7 @@ public class Main {
 
          input = scanner.nextLine();
         }while(!input.matches(""));
+
+        scanner.close();
     }
 }
