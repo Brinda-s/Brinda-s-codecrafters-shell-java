@@ -18,15 +18,16 @@ public class Main {
                 continue;
             }
 
-            if(input.startsWith("echo")){
-                String[] words = str.split(" ");
+            if(input.startsWith("echo ")){
+                String[] words = str.split(" ",2);
 
-                if(words.length >1){
-                    for(int i=1;i<words.length;i++){
-                        System.out.print(words[i] + " ");
-                    }
+                if (words.length > 1) {
+                    System.out.println(words[1]); // Print the part after "echo"
+                } else {
+                    System.out.println(); // Just an empty echo
                 }
-                System.out.println();
+                System.out.print("$ "); // Print the prompt for the next command
+                continue;
             }
         
 
