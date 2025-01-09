@@ -6,17 +6,19 @@ public class Main {
         System.out.print("$ ");
 
         Scanner scanner = new Scanner(System.in);
-        String input = scanner.nextLine();
+        while(true){
+            String input = scanner.nextLine().trim();
 
-        do{
+            if(input.isEmpty()){
+                System.out.print("$ ");
+                continue;
+            }
+        
+
         System.out.println(input + ": command not found");
-         System.out.println(input + ": command not found");
+        System.out.print("$ ");
+        }
 
-         System.out.print("$ ");
 
-         input = scanner.nextLine();
-        }while(!input.matches(""));
-
-        scanner.close();
     }
 }
