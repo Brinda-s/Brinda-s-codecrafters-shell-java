@@ -1,9 +1,9 @@
 import java.util.Scanner;
 import java.util.Set;
+import java.util.HashSet;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        
         System.out.print("$ ");
 
         Scanner scanner = new Scanner(System.in);
@@ -12,55 +12,47 @@ public class Main {
         builtins.add("exit");
         builtins.add("type");
 
-        while(true){
+        while (true) {
             String input = scanner.nextLine().trim();
 
-            if(input.equals("exit 0")){
+            if (input.equals("exit 0")) {
                 System.exit(0);
             }
 
-            if(input.isEmpty()){
+            if (input.isEmpty()) {
                 System.out.print("$ ");
                 continue;
             }
 
-            if(input.startsWith("echo ")){
-                String[] words = input.split(" ",2);
-
+            if (input.startsWith("echo ")) {
+                String[] words = input.split(" ", 2);
                 if (words.length > 1) {
-                    System.out.println(words[1]); // Print the part after "echo"
+                    System.out.println(words[1]); // Print everything after "echo"
                 } else {
-                    System.out.println(); // Just an empty echo
+                    System.out.println(); // Print an empty line for "echo"
                 }
-                System.out.print("$ "); // Print the prompt for the next command
+                System.out.print("$ ");
                 continue;
             }
 
-            if(input.startsWith("type: ")){
-                String[] parts = input.split(" ",2);
-
-                if(parts.length>1){
+            if (input.startsWith("type ")) {
+                String[] parts = input.split(" ", 2);
+                if (parts.length > 1) {
                     String command = parts[1];
-                    if(builtins.contains(command)){
+                    if (builtins.contains(command)) {
                         System.out.println(command + " is a shell builtin");
+                    } else {
+                        System.out.println(command + ": not found");
                     }
-                    else{
-                        System.out.println(command + ":not found");
-                    }
-                }
-                else{
+                } else {
                     System.out.println("type: not found");
                 }
-                System.out.println("$ ");
+                System.out.print("$ ");
                 continue;
-                }
             }
-        
 
-        System.out.println(input + ": command not found");
-        System.out.print("$ ");
+            System.out.println(input + ": command not found");
+            System.out.print("$ ");
         }
-
-
     }
 }
