@@ -1,6 +1,7 @@
 import java.util.Scanner;
 import java.util.Set;
 import java.io.File;
+import java.io.IOException;
 import java.util.HashSet;
 
 public class Main {
@@ -67,7 +68,37 @@ public class Main {
                 continue;
             }
 
-            System.out.println(input + ": command not found");
+            //Execute  external commands with arguements
+            String[] commandParts = input.split("\\s+");
+            String command = commandParts[0];
+            String path = System.getenv("PATH");
+            boolean executed =false;
+
+            if(path!=null){
+                String[] directories = path.split(":");
+                for(String dir : directories){
+                    File file = new file(dir,command);
+                    if(file.exists() && file.canExecute()){
+                        try{
+                            //Execute the external command
+                            ProcessBuilder pb = new ProcessBuilder(commandParts);
+                            pb.inheritIO(); //Use the same input/output as the shell
+                            Process process = pb.start();
+                            process.waitFor();//Wait for the command to complete
+                            executed = true;
+                            break;
+                        }catch(IOException | InterruptedException e){
+                            System.out.println("Error executing command: " + e.getMessage());
+                        }
+                    }
+                }
+            }
+
+            if(!executed){
+                System.out.println(input + ": command not found");
+            }
+
+            
             System.out.print("$ ");
         }
     }
