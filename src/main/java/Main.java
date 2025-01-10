@@ -32,12 +32,30 @@ public class Main {
             }
 
             if (input.startsWith("echo ")) {
+                //check if input contains single quotes and handle them
+                String quotedString = null;
+                if(input.contains(" ")){
+                    int startQuoteIndex = input.indexOf(" ' ");
+                    int endQuoteIndex = input.lastIndexOf((" ' "));
+
+                    //extract the content inside the single quotes 
+                    if(startQuoteIndex != -1 && endQuoteIndex != -1 && endQuoteIndex > startQuoteIndex){
+                        quotedString = input.substring(startQuoteIndex+1, endQuoteIndex);
+                    }
+
+                    //print the content inside quotes as literal text
+                    if(quotedString != null){
+                        System.out.println(quotedString);
+                    }
+                }else{
+                    //if no quotes, print the string as normal 
                 String[] words = input.split(" ", 2);
                 if (words.length > 1) {
                     System.out.println(words[1]); // Print everything after "echo"
                 } else {
                     System.out.println(); // Print an empty line for "echo"
                 }
+            }
                 System.out.print("$ ");
                 continue;
             }
