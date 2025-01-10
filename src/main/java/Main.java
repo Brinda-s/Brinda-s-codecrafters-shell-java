@@ -77,7 +77,7 @@ public class Main {
             if(path!=null){
                 String[] directories = path.split(":");
                 for(String dir : directories){
-                    File file = new file(dir,command);
+                    File file = new File(dir,command);
                     if(file.exists() && file.canExecute()){
                         try{
                             //Execute the external command
