@@ -86,6 +86,21 @@ public class Main {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
                     String targetDirectory = parts[1];
+
+                    //handle the '~' character for home directory
+                    if(targetDirectory.startsWith("~")){
+                        //get the home directory from the environment
+                        String homeDirectory = System.getenv("HOME");
+                        if(homeDirectory == null){
+                            System.out.println("cd: Home not set");
+                            System.out.print("$ ");
+                            continue;
+                        }
+
+                        //resolve the full path with the home directory
+                        targetDirectory = homeDirectory + targetDirectory.substring(1);
+
+                    }
                     File newDir = new File(targetDirectory);
 
                     // Check if the path is absolute
