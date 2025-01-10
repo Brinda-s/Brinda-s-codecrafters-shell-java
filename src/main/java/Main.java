@@ -13,6 +13,7 @@ public class Main {
         builtins.add("echo");
         builtins.add("exit");
         builtins.add("type");
+        builtins.add("pwd");
 
         while (true) {
             String input = scanner.nextLine().trim();
