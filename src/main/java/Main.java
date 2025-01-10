@@ -68,6 +68,15 @@ public class Main {
                 continue;
             }
 
+            //handle 'pwd' command
+            if(input.equals("pwd")){
+                // get the current working directory
+                String currentDirectory = System.getProperty("user.dir");
+                System.out.println(currentDirectory);
+                System.out.print("$ ");
+                continue;
+            }
+
             //Execute  external commands with arguements
             String[] commandParts = input.split("\\s+");
             String command = commandParts[0];
