@@ -1,5 +1,6 @@
 import java.util.Scanner;
 import java.util.Set;
+import java.io.File;
 import java.util.HashSet;
 
 public class Main {
@@ -42,7 +43,22 @@ public class Main {
                     if (builtins.contains(command)) {
                         System.out.println(command + " is a shell builtin");
                     } else {
-                        System.out.println(command + ": not found");
+                       String path = System.getenv("PATH");
+                       boolean found = false;
+                       if(path != null){
+                        String[] directories = path.split(":");
+                        for(String dir: directories){
+                            File file = new File(dir,command);
+                            if(file.exists() && file.canExecute()) {
+                                System.out.println(command + " is " + file.getAbsolutePath());
+                                found = true;
+                                break;
+                            }
+                        }
+                        }
+                        if(!found){
+                            System.out.println(command + ": not found");
+                        }
                     }
                 } else {
                     System.out.println("type: not found");
