@@ -32,30 +32,21 @@ public class Main {
             }
 
             if (input.startsWith("echo ")) {
-                //check if input contains single quotes and handle them
-                String quotedString = null;
-                
-                //remove leading "echo " to handle the quoted test
-                String text = input.substring(5).trim();
-
-                //check if the string starts and ends with single quotes
-                if(text.startsWith(" ' ") && text.endsWith(" ' ")){
-                    //extract the content inside the single quotes
-                    quotedString = text.substring(1, text.length()-1);
-                    //print the content inside quotes as literak text
-                    System.out.println(quotedString);
-                }else{
-                    //if no quotes,print the String as normal
-                    String[] words = input.split(" ",2);
-                    if(words.length > 1){
-                        System.out.println(words[1]); //print everything after echo
-                    }else{
-                        System.out.println(); //print an empty line for "echo"
-                    }
+                String text = input.substring(5).trim(); // Remove "echo " prefix
+            
+                // Check if the string starts and ends with single quotes
+                if (text.startsWith("'") && text.endsWith("'") && text.length() > 1) {
+                    // Extract content inside the single quotes
+                    String quotedString = text.substring(1, text.length() - 1);
+                    System.out.println(quotedString); // Print the extracted string
+                } else {
+                    // Print the input normally if no quotes
+                    System.out.println(text);
                 }
                 System.out.print("$ ");
                 continue;
             }
+            
 
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
