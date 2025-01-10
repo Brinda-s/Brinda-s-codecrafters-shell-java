@@ -33,22 +33,52 @@ public class Main {
 
             if (input.startsWith("echo ")) {
                 String text = input.substring(5).trim(); // Remove "echo " prefix
-
-                 // Collapse multiple spaces into a single space
-                text = text.replaceAll("\\s+", " ");
             
-                // Check if the string starts and ends with single quotes
-                if (text.startsWith("'") && text.endsWith("'") && text.length() > 1) {
-                    // Extract content inside the single quotes
-                    String quotedString = text.substring(1, text.length() - 1);
-                    System.out.println(quotedString); // Print the extracted string
-                } else {
-                    // Print the input normally if no quotes
-                    System.out.println(text);
+                // Parse the input while preserving content inside quotes
+                StringBuilder output = new StringBuilder();
+                boolean insideQuotes = false;
+                char currentQuote = '\0'; // Track whether inside single or double quotes
+                StringBuilder temp = new StringBuilder();
+            
+                for (char c : text.toCharArray()) {
+                    if (c == '\'' || c == '"') { // Handle quotes
+                        if (insideQuotes && c == currentQuote) {
+                            // Closing the current quote
+                            insideQuotes = false;
+                            currentQuote = '\0';
+                        } else if (!insideQuotes) {
+                            // Starting a new quoted segment
+                            insideQuotes = true;
+                            currentQuote = c;
+                        } else {
+                            // Append quotes inside nested quotes (e.g., `"it's"` in double quotes)
+                            temp.append(c);
+                        }
+                    } else if (!insideQuotes && Character.isWhitespace(c)) {
+                        // Outside quotes, treat whitespace as separator
+                        if (temp.length() > 0) {
+                            if (output.length() > 0) output.append(" ");
+                            output.append(temp);
+                            temp.setLength(0); // Clear temp
+                        }
+                    } else {
+                        // Append characters to temp buffer
+                        temp.append(c);
+                    }
                 }
+            
+                // Add remaining text
+                if (temp.length() > 0) {
+                    if (output.length() > 0) output.append(" ");
+                    output.append(temp);
+                }
+            
+                // Print the result
+                System.out.println(output.toString());
                 System.out.print("$ ");
                 continue;
             }
+            
             
 
             if (input.startsWith("type ")) {
