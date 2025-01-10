@@ -34,28 +34,25 @@ public class Main {
             if (input.startsWith("echo ")) {
                 //check if input contains single quotes and handle them
                 String quotedString = null;
-                if(input.contains(" ")){
-                    int startQuoteIndex = input.indexOf(" ' ");
-                    int endQuoteIndex = input.lastIndexOf((" ' "));
+                
+                //remove leading "echo " to handle the quoted test
+                String text = input.substring(5).trim();
 
-                    //extract the content inside the single quotes 
-                    if(startQuoteIndex != -1 && endQuoteIndex != -1 && endQuoteIndex > startQuoteIndex){
-                        quotedString = input.substring(startQuoteIndex+1, endQuoteIndex);
-                    }
-
-                    //print the content inside quotes as literal text
-                    if(quotedString != null){
-                        System.out.println(quotedString);
-                    }
+                //check if the string starts and ends with single quotes
+                if(text.startsWith(" ' ") && text.endsWith(" ' ")){
+                    //extract the content inside the single quotes
+                    quotedString = text.substring(1, text.length()-1);
+                    //print the content inside quotes as literak text
+                    System.out.println(quotedString);
                 }else{
-                    //if no quotes, print the string as normal 
-                String[] words = input.split(" ", 2);
-                if (words.length > 1) {
-                    System.out.println(words[1]); // Print everything after "echo"
-                } else {
-                    System.out.println(); // Print an empty line for "echo"
+                    //if no quotes,print the String as normal
+                    String[] words = input.split(" ",2);
+                    if(words.length > 1){
+                        System.out.println(words[1]); //print everything after echo
+                    }else{
+                        System.out.println(); //print an empty line for "echo"
+                    }
                 }
-            }
                 System.out.print("$ ");
                 continue;
             }
