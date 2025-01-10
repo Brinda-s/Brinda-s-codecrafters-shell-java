@@ -33,6 +33,9 @@ public class Main {
 
             if (input.startsWith("echo ")) {
                 String text = input.substring(5).trim(); // Remove "echo " prefix
+
+                 // Collapse multiple spaces into a single space
+                text = text.replaceAll("\\s+", " ");
             
                 // Check if the string starts and ends with single quotes
                 if (text.startsWith("'") && text.endsWith("'") && text.length() > 1) {
