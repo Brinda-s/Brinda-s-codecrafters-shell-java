@@ -95,15 +95,37 @@ public class Main {
 
                     if (newDir.exists() && newDir.isDirectory()) {
                         currentDirectory = newDir.getCanonicalPath(); // Updates current directory
-                    } else {
-                        System.out.println("cd: " + targetDirectory + ": No such file or directory");
+                    } else{
+                        //to handle relative paths
+                        if(targetDirectory.equals("./")){
+                            //no change needed for './'
+                            continue;
+                        }
+                        else if(targetDirectory.equals("..")){
+                            //goes up one level if `..` is provided
+                            File parentDir = new File(currentDirectory).getParentFile();
+                            if(parentDir != null){
+                                currentDirectory = parentDir.getCanonicalPath();
+                            }
+                        }
+                        else{
+                            //combine the current directory with the relative path
+                            newDir = new File(currentDirectory, targetDirectory);
+                            if(newDir.exists() && newDir.isDirectory()){
+                                currentDirectory = newDir.getCanonicalPath(); //update the current directory
+                            }else{
+                                System.out.println("cd: " + targetDirectory + ": No such file or directory");
+                            }
+                        }
+                        }
                     }
-                } else {
-                    System.out.println("cd: No directory specified");
-                }
-                System.out.print("$ ");
-                continue;
-            }
+                    else{
+                        System.out.println("cd : No directory specified");
+                    }
+                    System.out.print("$ ");
+                    continue;
+                 }
+             
 
             // Execute external commands with arguments
             String[] commandParts = input.split("\\s+");
