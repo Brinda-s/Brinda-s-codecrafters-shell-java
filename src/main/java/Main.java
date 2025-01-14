@@ -106,14 +106,20 @@ public class Main {
                     files.add(currentFile.toString());
                 }
             
-                List<String> contents = new ArrayList<>();
+                StringBuilder output = new StringBuilder();
+                boolean firstFile = true;
+                
                 for (String filePath : files) {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
                             String content = String.join("", Files.readAllLines(file.toPath()));
                             if (!content.isEmpty()) {
-                                contents.add(content);
+                                if (!firstFile) {
+                                    output.append(".");
+                                }
+                                output.append(content);
+                                firstFile = false;
                             }
                         } catch (IOException e) {
                             System.out.println("Error reading file: " + filePath);
@@ -123,8 +129,8 @@ public class Main {
                     }
                 }
                 
-                if (!contents.isEmpty()) {
-                    System.out.println(String.join(".", contents));
+                if (output.length() > 0) {
+                    System.out.println(output.toString());
                 }
                 
                 System.out.print("$ ");
