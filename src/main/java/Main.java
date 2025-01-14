@@ -32,54 +32,43 @@ public class Main {
             }
 
             if (input.startsWith("echo ")) {
-                String text = input.substring(5).trim(); // Remove "echo " prefix
-            
-                // Parse the input while preserving content inside quotes
+
+                String text = input.substring(5).trim(); //removes echo as prefix
                 StringBuilder output = new StringBuilder();
-                boolean insideQuotes = false;
-                char currentQuote = '\0'; // Track whether inside single or double quotes
+                booleam insideQuotes = false;
+                char quoteChar  ='\0'; // tracks whether inside single or double quotes
                 StringBuilder temp = new StringBuilder();
-            
-                for (char c : text.toCharArray()) {
-                    if (c == '\'' || c == '"') { // Handle quotes
-                        if (insideQuotes && c == currentQuote) {
-                            // Closing the current quote
+
+                for(char c :text.toCharArray()){
+                    if(c=='\''){
+                        if(insideQuotes){
+                            //End of quoted section
                             insideQuotes = false;
-                            currentQuote = '\0';
-                        } else if (!insideQuotes) {
-                            // Starting a new quoted segment
+                        }else{
+                            //start of quoted section
                             insideQuotes = true;
-                            currentQuote = c;
-                        } else {
-                            // Append quotes inside nested quotes (e.g., `"it's"` in double quotes)
+                        }
+                    }else{
+                        //add chracter to the output if not inside quotes
+                        if(insideQuotes){
                             temp.append(c);
+                        }else if(c!= ' ' || temp.length()>0){
+                            if(c== ' ' && temp.length()>0){
+                                output.append(temp).append(" ");
+                                temp.setLength(0);
+                            }else{
+                                temp.append(c);
+                            }
                         }
-                    } else if (!insideQuotes && Character.isWhitespace(c)) {
-                        // Outside quotes, treat whitespace as separator
-                        if (temp.length() > 0) {
-                            if (output.length() > 0) output.append(" ");
-                            output.append(temp);
-                            temp.setLength(0); // Clear temp
-                        }
-                    } else {
-                        // Append characters to temp buffer
-                        temp.append(c);
                     }
                 }
-            
-                // Add remaining text
-                if (temp.length() > 0) {
-                    if (output.length() > 0) output.append(" ");
+                if(temp.length()>0){
                     output.append(temp);
                 }
-            
-                // Print the result
-                System.out.println(output.toString());
+                System.out.println(output.toString().trim());
                 System.out.print("$ ");
                 continue;
             }
-            
-            
 
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
