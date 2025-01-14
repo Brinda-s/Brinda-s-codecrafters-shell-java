@@ -251,4 +251,64 @@ public class Main {
             System.out.print("$ ");
         }
     }
+
+    private static List<String> parseQuotedText(String text){
+        List<String> parts = new ArrayList<>();
+        StringBuilder currentPart = new StringBuilder();
+        boolean insideSingleQuotes = false;
+        boolean insideDoubleQuotes = false;
+        boolean escaped = false;
+
+        for(int i=0;i<text.length();i++){
+            char c = text.charAt(i);
+
+            if(escaped){
+                if(insideDoubleQuotes){
+                    //in double quotes, only \,$,", and newline retain special meaning
+                    if(c=='\\'||c=='$'||c=='"'||c=='\n'){
+                        currentPart.append(c);
+                    }else{
+                        currentPart.append('\\').append(c);
+                    }
+                }else{
+                    currentPart.append(c);
+                }
+                escaped = false;
+                continue;
+            }
+
+            if(c=='\\' && !insideSingleQuotes){
+                escaped = true;
+                continue;
+            }
+
+            if(c=='"' && !insideSingleQuotes){
+                insideDoubleQuotes = !insideDoubleQuotes;
+                continue;
+            }
+            if (c == '\'' && !insideDoubleQuotes) {
+                insideSingleQuotes = !insideSingleQuotes;
+                continue;
+            }
+            
+            if (c == ' ' && !insideSingleQuotes && !insideDoubleQuotes) {
+                if (currentPart.length() > 0) {
+                    parts.add(currentPart.toString());
+                    currentPart.setLength(0);
+                }
+                continue;
+            }
+            
+            currentPart.append(c);
+        }
+        
+        if (currentPart.length() > 0) {
+            parts.add(currentPart.toString());
+        }
+        
+        return parts;
+    }
 }
+
+            
+      
