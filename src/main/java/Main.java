@@ -128,7 +128,7 @@ public class Main {
                         try {
                             List<String> lines = Files.readAllLines(file.toPath());
                             for (String line : lines) {
-                                output.append(line).append(".");  // Appending contents with a period
+                                output.append(line); // Don't append a period here
                             }
                         } catch (IOException e) {
                             System.out.println("Error reading file: " + filePath);
@@ -137,6 +137,7 @@ public class Main {
                         System.out.println("cat: " + filePath + ": No such file or directory");
                     }
                 }
+
 
                 // Print all contents concatenated together
                 String result = output.toString().trim();
