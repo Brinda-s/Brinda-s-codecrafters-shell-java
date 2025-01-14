@@ -39,24 +39,42 @@ public class Main {
                 String text = input.substring(5).trim();
                 StringBuilder output = new StringBuilder();
                 boolean insideQuotes = false;
+                boolean lastWasSpace = false;
                 
                 for (int i = 0; i < text.length(); i++) {
                     char c = text.charAt(i);
                     if (c == '\'') {
                         insideQuotes = !insideQuotes;
+                        continue;
+                    }
+                    
+                    if (c == ' ') {
+                        if (insideQuotes) {
+                            output.append(c);
+                        } else if (!lastWasSpace) {
+                            output.append(c);
+                            lastWasSpace = true;
+                        }
                     } else {
                         output.append(c);
+                        lastWasSpace = false;
                     }
                 }
                 
-                System.out.println(output.toString());
+                // Trim any trailing space
+                String result = output.toString();
+                if (!result.isEmpty() && result.charAt(result.length() - 1) == ' ') {
+                    result = result.substring(0, result.length() - 1);
+                }
+                
+                System.out.println(result);
 
                 String filename = "/tmp/foo/f75";
                 File dir = new File("/tmp/foo");
                 dir.mkdirs();
                 File outputFile = new File(filename);
                 try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
-                    writer.write(output.toString());
+                    writer.write(result);
                 } catch (IOException e) {
                     System.out.println("Error writing to file: " + e.getMessage());
                 }
