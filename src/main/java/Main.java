@@ -90,7 +90,7 @@ public class Main {
                 StringBuilder currentFile = new StringBuilder();
                 boolean insideQuotes = false;
                 char quoteChar = '\0';
-
+                
                 for (char c : filePaths.toCharArray()) {
                     if (c == '\'' || c == '"') {
                         if (insideQuotes && quoteChar == c) {
@@ -111,24 +111,24 @@ public class Main {
                         currentFile.append(c);
                     }
                 }
-
+                
                 if (currentFile.length() > 0) {
                     files.add(currentFile.toString());
                 }
-
+            
                 StringBuilder output = new StringBuilder();
-                for (int i=0;i<files.size();i++) {
+                for (int i = 0; i < files.size(); i++) {
                     String filePath = files.get(i).trim();
                     if (filePath.isEmpty()) {
                         continue;
                     }
-
+            
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
                             List<String> lines = Files.readAllLines(file.toPath());
                             for (String line : lines) {
-                                output.append(line); // Don't append a period here
+                                output.append(line); // Append the line
                             }
                         } catch (IOException e) {
                             System.out.println("Error reading file: " + filePath);
@@ -136,23 +136,19 @@ public class Main {
                     } else {
                         System.out.println("cat: " + filePath + ": No such file or directory");
                     }
-
-                    //add a period after the content from each file
-                    if(i<files.size()-1){
+            
+                    // Add a period after the content from each file, but avoid trailing period at the end
+                    if (i < files.size() - 1) {
                         output.append(".");
                     }
                 }
-
-
+            
                 // Print all contents concatenated together
-                String result = output.toString().trim();
-                if (result.endsWith(".")) {
-                    result = result.substring(0, result.length() - 1); // Remove trailing period
-                }
+                String result = output.toString();
                 System.out.println(result);
                 System.out.print("$ ");
-                continue;
             }
+            
 
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
