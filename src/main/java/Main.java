@@ -37,48 +37,45 @@ public class Main {
             }
 
             if (input.startsWith("echo ")) {
-
-                String text = input.substring(5).trim(); //removes echo as prefix
+                String text = input.substring(5).trim(); // removes echo as prefix
                 StringBuilder output = new StringBuilder();
                 boolean insideQuotes = false;
-                char quoteChar  ='\0'; // tracks whether inside single or double quotes
+                char quoteChar = '\0'; // tracks whether inside single or double quotes
                 StringBuilder temp = new StringBuilder();
 
-                for(char c :text.toCharArray()){
-                    if(c=='\''){
-                        if(insideQuotes){
-                            //End of quoted section
-                            insideQuotes = false;
-                        }else{
-                            //start of quoted section
-                            insideQuotes = true;
+                for (char c : text.toCharArray()) {
+                    if (c == '\'') {
+                        if (insideQuotes) {
+                            insideQuotes = false; // End of quoted section
+                        } else {
+                            insideQuotes = true; // Start of quoted section
                         }
-                    }else{
-                        //add chracter to the output if not inside quotes
-                        if(insideQuotes){
+                    } else {
+                        // Add character to the output if not inside quotes
+                        if (insideQuotes) {
                             temp.append(c);
-                        }else if(c!= ' ' || temp.length()>0){
-                            if(c== ' ' && temp.length()>0){
+                        } else if (c != ' ' || temp.length() > 0) {
+                            if (c == ' ' && temp.length() > 0) {
                                 output.append(temp).append(" ");
                                 temp.setLength(0);
-                            }else{
+                            } else {
                                 temp.append(c);
                             }
                         }
                     }
                 }
-                if(temp.length()>0){
+                if (temp.length() > 0) {
                     output.append(temp);
                 }
                 System.out.println(output.toString().trim());
 
                 String filename = "/tmp/foo/f75";
                 File dir = new File("/tmp/foo");
-                dir.mkdirs();//ensure the directory exists
+                dir.mkdirs(); // Ensure the directory exists
                 File outputFile = new File(filename);
-                try(BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))){
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
                     writer.write(output.toString().trim());
-                }catch(IOException e){
+                } catch (IOException e) {
                     System.out.println("Error writing to file: " + e.getMessage());
                 }
 
@@ -86,14 +83,14 @@ public class Main {
                 continue;
             }
 
-            if(input.startsWith("cat ")) {
+            if (input.startsWith("cat ")) {
                 String filePaths = input.substring(4).trim();
                 // Split file paths by spaces outside quotes (ignoring quoted sections)
                 List<String> files = new ArrayList<>();
                 StringBuilder currentFile = new StringBuilder();
                 boolean insideQuotes = false;
                 char quoteChar = '\0';
-            
+
                 for (char c : filePaths.toCharArray()) {
                     if (c == '\'' || c == '"') {
                         if (insideQuotes && quoteChar == c) {
@@ -114,24 +111,24 @@ public class Main {
                         currentFile.append(c);
                     }
                 }
-            
+
                 if (currentFile.length() > 0) {
                     files.add(currentFile.toString());
                 }
-            
+
                 StringBuilder output = new StringBuilder();
                 for (String filePath : files) {
                     filePath = filePath.trim();
                     if (filePath.isEmpty()) {
                         continue;
                     }
-            
+
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
                             List<String> lines = Files.readAllLines(file.toPath());
                             for (String line : lines) {
-                                output.append(line).append("\n");
+                                output.append(line).append(".");  // Appending contents with a period
                             }
                         } catch (IOException e) {
                             System.out.println("Error reading file: " + filePath);
@@ -140,13 +137,16 @@ public class Main {
                         System.out.println("cat: " + filePath + ": No such file or directory");
                     }
                 }
-                
+
                 // Print all contents concatenated together
-                System.out.print(output.toString()); 
+                String result = output.toString().trim();
+                if (result.endsWith(".")) {
+                    result = result.substring(0, result.length() - 1); // Remove trailing period
+                }
+                System.out.println(result);
                 System.out.print("$ ");
                 continue;
             }
-            
 
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
@@ -181,7 +181,6 @@ public class Main {
 
             // Handle 'pwd' command
             if (input.equals("pwd")) {
-                // Print the current working directory from the tracked variable
                 System.out.println(currentDirectory);
                 System.out.print("$ ");
                 continue;
@@ -193,60 +192,40 @@ public class Main {
                 if (parts.length > 1) {
                     String targetDirectory = parts[1];
 
-                    //handle the '~' character for home directory
-                    if(targetDirectory.startsWith("~")){
-                        //get the home directory from the environment
+                    // Handle the '~' character for home directory
+                    if (targetDirectory.startsWith("~")) {
                         String homeDirectory = System.getenv("HOME");
-                        if(homeDirectory == null){
+                        if (homeDirectory == null) {
                             System.out.println("cd: Home not set");
                             System.out.print("$ ");
                             continue;
                         }
-
-                        //resolve the full path with the home directory
                         targetDirectory = homeDirectory + targetDirectory.substring(1);
-
                     }
-                    File newDir = new File(targetDirectory);
 
-                    // Check if the path is absolute
+                    File newDir = new File(targetDirectory);
                     if (!newDir.isAbsolute()) {
                         newDir = new File(currentDirectory, targetDirectory);
                     }
 
                     if (newDir.exists() && newDir.isDirectory()) {
-                        currentDirectory = newDir.getCanonicalPath(); // Updates current directory
-                    } else{
-                        //to handle relative paths
-                        if(targetDirectory.equals("./")){
-                            //no change needed for './'
-                            continue;
+                        currentDirectory = newDir.getCanonicalPath(); // Update current directory
+                    } else if (targetDirectory.equals("./")) {
+                        continue; // No change needed for './'
+                    } else if (targetDirectory.equals("..")) {
+                        File parentDir = new File(currentDirectory).getParentFile();
+                        if (parentDir != null) {
+                            currentDirectory = parentDir.getCanonicalPath();
                         }
-                        else if(targetDirectory.equals("..")){
-                            //goes up one level if `..` is provided
-                            File parentDir = new File(currentDirectory).getParentFile();
-                            if(parentDir != null){
-                                currentDirectory = parentDir.getCanonicalPath();
-                            }
-                        }
-                        else{
-                            //combine the current directory with the relative path
-                            newDir = new File(currentDirectory, targetDirectory);
-                            if(newDir.exists() && newDir.isDirectory()){
-                                currentDirectory = newDir.getCanonicalPath(); //update the current directory
-                            }else{
-                                System.out.println("cd: " + targetDirectory + ": No such file or directory");
-                            }
-                        }
-                        }
+                    } else {
+                        System.out.println("cd: " + targetDirectory + ": No such file or directory");
                     }
-                    else{
-                        System.out.println("cd : No directory specified");
-                    }
-                    System.out.print("$ ");
-                    continue;
-                 }
-             
+                } else {
+                    System.out.println("cd: No directory specified");
+                }
+                System.out.print("$ ");
+                continue;
+            }
 
             // Execute external commands with arguments
             String[] commandParts = input.split("\\s+");
@@ -260,12 +239,11 @@ public class Main {
                     File file = new File(dir, command);
                     if (file.exists() && file.canExecute()) {
                         try {
-                            // Execute the external command
                             ProcessBuilder pb = new ProcessBuilder(commandParts);
-                            pb.directory(new File(currentDirectory)); // Set the working directory
+                            pb.directory(new File(currentDirectory));
                             pb.inheritIO(); // Use the same input/output as the shell
                             Process process = pb.start();
-                            process.waitFor(); // Wait for the command to complete
+                            process.waitFor();
                             executed = true;
                             break;
                         } catch (IOException | InterruptedException e) {
