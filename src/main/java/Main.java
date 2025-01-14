@@ -114,6 +114,10 @@ public class Main {
                     if (file.exists() && file.isFile()) {
                         try {
                             String content = String.join("", Files.readAllLines(file.toPath()));
+                            // Trim any trailing dots from the file content
+                            while (content.endsWith(".")) {
+                                content = content.substring(0, content.length() - 1);
+                            }
                             if (!content.isEmpty()) {
                                 if (!firstFile) {
                                     output.append(".");
@@ -137,6 +141,7 @@ public class Main {
                 continue;
             }
 
+            // Rest of the shell implementation remains the same...
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
