@@ -134,6 +134,7 @@ public class Main {
                 }
                 
                 if (output.length() > 0) {
+                    output.append(".");
                     System.out.println(output.toString());
                 }
                 
