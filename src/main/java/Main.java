@@ -87,63 +87,66 @@ public class Main {
             }
 
             if(input.startsWith("cat ")) {
-            String filePaths = input.substring(4).trim();
-            // Split file paths by spaces outside quotes (ignoring quoted sections)
-            List<String> files = new ArrayList<>();
-            StringBuilder currentFile = new StringBuilder();
-            boolean insideQuotes = false;
-            char quoteChar = '\0';
-
-            for (char c : filePaths.toCharArray()) {
-                if (c == '\'' || c == '"') {
-                    if (insideQuotes && quoteChar == c) {
-                        insideQuotes = false; // Close the quote
-                    } else if (!insideQuotes) {
-                        insideQuotes = true; // Open the quote
-                        quoteChar = c;
+                String filePaths = input.substring(4).trim();
+                // Split file paths by spaces outside quotes (ignoring quoted sections)
+                List<String> files = new ArrayList<>();
+                StringBuilder currentFile = new StringBuilder();
+                boolean insideQuotes = false;
+                char quoteChar = '\0';
+            
+                for (char c : filePaths.toCharArray()) {
+                    if (c == '\'' || c == '"') {
+                        if (insideQuotes && quoteChar == c) {
+                            insideQuotes = false; // Close the quote
+                        } else if (!insideQuotes) {
+                            insideQuotes = true; // Open the quote
+                            quoteChar = c;
+                        } else {
+                            currentFile.append(c);
+                        }
+                    } else if (c == ' ' && !insideQuotes) {
+                        // Add the current file path to the list and reset
+                        if (currentFile.length() > 0) {
+                            files.add(currentFile.toString());
+                            currentFile.setLength(0);
+                        }
                     } else {
                         currentFile.append(c);
                     }
-                } else if (c == ' ' && !insideQuotes) {
-                    // Add the current file path to the list and reset
-                    if (currentFile.length() > 0) {
-                        files.add(currentFile.toString());
-                        currentFile.setLength(0);
+                }
+            
+                if (currentFile.length() > 0) {
+                    files.add(currentFile.toString());
+                }
+            
+                StringBuilder output = new StringBuilder();
+                for (String filePath : files) {
+                    filePath = filePath.trim();
+                    if (filePath.isEmpty()) {
+                        continue;
                     }
-                } else {
-                    currentFile.append(c);
-                }
-            }
-
-            if (currentFile.length() > 0) {
-                files.add(currentFile.toString());
-            }
-
-            StringBuilder output = new StringBuilder();
-            for (String filePath : files) {
-                filePath = filePath.trim();
-                if (filePath.isEmpty()) {
-                    continue;
-                }
-
-                File file = new File(filePath);
-                if (file.exists() && file.isFile()) {
-                    try {
-                        List<String> lines = Files.readAllLines(file.toPath());
-                        for (String line : lines) {
-                            output.append(line).append("\n");
+            
+                    File file = new File(filePath);
+                    if (file.exists() && file.isFile()) {
+                        try {
+                            List<String> lines = Files.readAllLines(file.toPath());
+                            for (String line : lines) {
+                                output.append(line).append("\n");
+                            }
+                        } catch (IOException e) {
+                            System.out.println("Error reading file: " + filePath);
                         }
-                    } catch (IOException e) {
-                        System.out.println("Error reading file: " + filePath);
+                    } else {
+                        System.out.println("cat: " + filePath + ": No such file or directory");
                     }
-                } else {
-                    System.out.println("cat: " + filePath + ": No such file or directory");
                 }
+                
+                // Print all contents concatenated together
+                System.out.print(output.toString()); 
+                System.out.print("$ ");
+                continue;
             }
-            System.out.print(output.toString());
-            System.out.print("$ ");
-            continue;
-        }
+            
 
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
