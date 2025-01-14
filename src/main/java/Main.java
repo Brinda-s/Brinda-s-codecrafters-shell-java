@@ -117,8 +117,8 @@ public class Main {
                 }
 
                 StringBuilder output = new StringBuilder();
-                for (String filePath : files) {
-                    filePath = filePath.trim();
+                for (int i=0;i<files.size();i++) {
+                    String filePath = files.get(i).trim();
                     if (filePath.isEmpty()) {
                         continue;
                     }
@@ -135,6 +135,11 @@ public class Main {
                         }
                     } else {
                         System.out.println("cat: " + filePath + ": No such file or directory");
+                    }
+
+                    //add a period after the content from each file
+                    if(i<files.size()-1){
+                        output.append(".");
                     }
                 }
 
