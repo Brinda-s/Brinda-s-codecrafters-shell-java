@@ -35,7 +35,7 @@ public class Main {
 
                 String text = input.substring(5).trim(); //removes echo as prefix
                 StringBuilder output = new StringBuilder();
-                booleam insideQuotes = false;
+                boolean insideQuotes = false;
                 char quoteChar  ='\0'; // tracks whether inside single or double quotes
                 StringBuilder temp = new StringBuilder();
 
