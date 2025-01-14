@@ -61,7 +61,6 @@ public class Main {
                     }
                 }
                 
-                // Trim any trailing space
                 String result = output.toString();
                 if (!result.isEmpty() && result.charAt(result.length() - 1) == ' ') {
                     result = result.substring(0, result.length() - 1);
@@ -107,18 +106,14 @@ public class Main {
                     files.add(currentFile.toString());
                 }
             
-                StringBuilder output = new StringBuilder();
-                for (int i = 0; i < files.size(); i++) {
-                    String filePath = files.get(i);
+                List<String> contents = new ArrayList<>();
+                for (String filePath : files) {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
-                            List<String> lines = Files.readAllLines(file.toPath());
-                            for (String line : lines) {
-                                output.append(line);
-                            }
-                            if (i < files.size() - 1) {
-                                output.append(".");
+                            String content = String.join("", Files.readAllLines(file.toPath()));
+                            if (!content.isEmpty()) {
+                                contents.add(content);
                             }
                         } catch (IOException e) {
                             System.out.println("Error reading file: " + filePath);
@@ -127,10 +122,11 @@ public class Main {
                         System.out.println("cat: " + filePath + ": No such file or directory");
                     }
                 }
-            
-                if (!output.isEmpty()) {
-                    System.out.println(output.toString());
+                
+                if (!contents.isEmpty()) {
+                    System.out.println(String.join(".", contents));
                 }
+                
                 System.out.print("$ ");
                 continue;
             }
