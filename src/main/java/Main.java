@@ -145,6 +145,9 @@ public class Main {
             
                 // Print all contents concatenated together
                 String result = output.toString();
+                if (result.endsWith(".")) {
+                    result = result.substring(0, result.length() - 1); // Remove trailing period
+                }
                 System.out.println(result);
                 System.out.print("$ ");
             }
