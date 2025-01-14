@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
@@ -85,16 +86,42 @@ public class Main {
                 continue;
             }
 
-            //Handle cat command with filenames that might contain spaces
-            if(input.startsWith("cat ")){
-            // Remove the "cat " part
+            if(input.startsWith("cat ")) {
             String filePaths = input.substring(4).trim();
             // Split file paths by spaces outside quotes (ignoring quoted sections)
-            String[] files = filePaths.split(" (?<!')'(?!')");
+            List<String> files = new ArrayList<>();
+            StringBuilder currentFile = new StringBuilder();
+            boolean insideQuotes = false;
+            char quoteChar = '\0';
+
+            for (char c : filePaths.toCharArray()) {
+                if (c == '\'' || c == '"') {
+                    if (insideQuotes && quoteChar == c) {
+                        insideQuotes = false; // Close the quote
+                    } else if (!insideQuotes) {
+                        insideQuotes = true; // Open the quote
+                        quoteChar = c;
+                    } else {
+                        currentFile.append(c);
+                    }
+                } else if (c == ' ' && !insideQuotes) {
+                    // Add the current file path to the list and reset
+                    if (currentFile.length() > 0) {
+                        files.add(currentFile.toString());
+                        currentFile.setLength(0);
+                    }
+                } else {
+                    currentFile.append(c);
+                }
+            }
+
+            if (currentFile.length() > 0) {
+                files.add(currentFile.toString());
+            }
 
             StringBuilder output = new StringBuilder();
             for (String filePath : files) {
-                filePath = filePath.trim().replaceAll("'", "");  // Clean up single quotes
+                filePath = filePath.trim();
                 if (filePath.isEmpty()) {
                     continue;
                 }
