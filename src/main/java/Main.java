@@ -150,7 +150,73 @@ public class Main {
                 }
                 System.out.println(result);
                 System.out.print("$ ");
+            }if (input.startsWith("cat ")) {
+                String filePaths = input.substring(4).trim();
+                
+                // Split file paths by spaces outside quotes (ignoring quoted sections)
+                List<String> files = new ArrayList<>();
+                StringBuilder currentFile = new StringBuilder();
+                boolean insideQuotes = false;
+                char quoteChar = '\0';
+            
+                for (char c : filePaths.toCharArray()) {
+                    if (c == '\'' || c == '"') {
+                        if (insideQuotes && quoteChar == c) {
+                            insideQuotes = false; // Close the quote
+                        } else if (!insideQuotes) {
+                            insideQuotes = true; // Open the quote
+                            quoteChar = c;
+                        } else {
+                            currentFile.append(c);
+                        }
+                    } else if (c == ' ' && !insideQuotes) {
+                        // Add the current file path to the list and reset
+                        if (currentFile.length() > 0) {
+                            files.add(currentFile.toString());
+                            currentFile.setLength(0);
+                        }
+                    } else {
+                        currentFile.append(c);
+                    }
+                }
+            
+                if (currentFile.length() > 0) {
+                    files.add(currentFile.toString());
+                }
+            
+                StringBuilder output = new StringBuilder();
+                for (int i = 0; i < files.size(); i++) {
+                    String filePath = files.get(i).trim();
+                    if (filePath.isEmpty()) {
+                        continue;
+                    }
+            
+                    File file = new File(filePath);
+                    if (file.exists() && file.isFile()) {
+                        try {
+                            List<String> lines = Files.readAllLines(file.toPath());
+                            for (String line : lines) {
+                                output.append(line); // Append the line
+                            }
+                        } catch (IOException e) {
+                            System.out.println("Error reading file: " + filePath);
+                        }
+                    } else {
+                        System.out.println("cat: " + filePath + ": No such file or directory");
+                    }
+            
+                    // Add a period after the content from each file, but avoid trailing period at the end
+                    if (i < files.size() - 1) {
+                        output.append(".");
+                    }
+                }
+            
+                // Print all contents concatenated together
+                String result = output.toString();
+                System.out.println(result);
+                System.out.print("$ ");
             }
+            
             
 
             if (input.startsWith("type ")) {
