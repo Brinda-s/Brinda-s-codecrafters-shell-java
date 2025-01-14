@@ -1,8 +1,12 @@
 import java.util.Scanner;
 import java.util.Set;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashSet;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -66,9 +70,53 @@ public class Main {
                     output.append(temp);
                 }
                 System.out.println(output.toString().trim());
+
+                String filename = "/tmp/foo/f75";
+                File dir = new File("/tmp/foo");
+                dir.mkdirs();//ensure the directory exists
+                File outputFile = new File(filename);
+                try(BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))){
+                    writer.write(output.toString().trim());
+                }catch(IOException e){
+                    System.out.println("Error writing to file: " + e.getMessage());
+                }
+
                 System.out.print("$ ");
                 continue;
             }
+
+            //Handle cat command with filenames that might contain spaces
+            if(input.startsWith("cat ")){
+            // Remove the "cat " part
+            String filePaths = input.substring(4).trim();
+            // Split file paths by spaces outside quotes (ignoring quoted sections)
+            String[] files = filePaths.split(" (?<!')'(?!')");
+
+            StringBuilder output = new StringBuilder();
+            for (String filePath : files) {
+                filePath = filePath.trim().replaceAll("'", "");  // Clean up single quotes
+                if (filePath.isEmpty()) {
+                    continue;
+                }
+
+                File file = new File(filePath);
+                if (file.exists() && file.isFile()) {
+                    try {
+                        List<String> lines = Files.readAllLines(file.toPath());
+                        for (String line : lines) {
+                            output.append(line).append("\n");
+                        }
+                    } catch (IOException e) {
+                        System.out.println("Error reading file: " + filePath);
+                    }
+                } else {
+                    System.out.println("cat: " + filePath + ": No such file or directory");
+                }
+            }
+            System.out.print(output.toString());
+            System.out.print("$ ");
+            continue;
+        }
 
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
