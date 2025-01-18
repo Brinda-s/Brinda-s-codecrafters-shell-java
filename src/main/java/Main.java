@@ -104,10 +104,26 @@ public class Main {
                         continue;
                     }
 
-                    if()
+                    if(c== '"'){
+                        insideDoubleQuotes = !insideDoubleQuotes;
+                        continue;
+                    }
+
+                    if(!insideDoubleQuotes && Character.isWhitespace(c)){
+                        if(currentFile.length()>0){
+                            files.add(currentFile.toString());
+                            currentFile.setLength(0);
+                        }
+                        else{
+                            currentFile.append(c);
+                        }
+                    }
+
+                    if(currentFile.length()>0){
+                        files.add(currentFile.toString());
+                    }
             
-                StringBuilder output = new StringBuilder();
-                boolean firstFile = true;
+            
                 
                 for (String filePath : files) {
                     File file = new File(filePath);
@@ -115,31 +131,18 @@ public class Main {
                         try {
                             String content = String.join("", Files.readAllLines(file.toPath()));
                             // Trim any trailing dots from the file content
-                            while (content.endsWith(".")) {
-                                content = content.substring(0, content.length() - 1);
-                            }
-                            if (!content.isEmpty()) {
-                                if (!firstFile) {
-                                    output.append(".");
-                                }
-                                output.append(content);
-                                firstFile = false;
-                            }
-                        } catch (IOException e) {
-                            System.out.println("Error reading file: " + filePath);
+                            System.out.print(content + " ");
+                        }catch (IOException e){
+                            System.out.println("cat: " + filePath + ": Error reading file");
                         }
-                    } else {
+                    }else{
                         System.out.println("cat: " + filePath + ": No such file or directory");
                     }
                 }
-                
-                if (output.length() > 0) {
-                    output.append(".");
-                    System.out.println(output.toString());
-                }
-                
+                System.out.println();
                 System.out.print("$ ");
                 continue;
+                  
             }
 
             // Rest of the shell implementation remains the same...
@@ -252,6 +255,7 @@ public class Main {
         }
     }
 
+}
 }
 
             
