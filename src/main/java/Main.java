@@ -38,73 +38,73 @@ public class Main {
             if (input.startsWith("echo ")) {
                 String text = input.substring(5).trim();
                 StringBuilder output = new StringBuilder();
-                boolean insideQuotes = false;
-                boolean lastWasSpace = false;
+                boolean insideDoubleQuotes = false;
+                boolean escapeNext = false;
                 
                 for (int i = 0; i < text.length(); i++) {
                     char c = text.charAt(i);
-                    if (c == '\'') {
-                        insideQuotes = !insideQuotes;
-                        continue;
-                    }
                     
-                    if (c == ' ') {
-                        if (insideQuotes) {
-                            output.append(c);
-                        } else if (!lastWasSpace) {
-                            output.append(c);
-                            lastWasSpace = true;
-                        }
-                    } else {
-                        output.append(c);
-                        lastWasSpace = false;
+                    if(escapeNext){
+
+                    if (c == '\\' || c=='$' || c=='"') {
+                       output.append(c);
+                    }else{
+                        output.append('\\').append(c);
                     }
+                    escapeNext = false;
+                    continue;
                 }
-                
-                String result = output.toString();
-                if (!result.isEmpty() && result.charAt(result.length() - 1) == ' ') {
-                    result = result.substring(0, result.length() - 1);
-                }
-                
-                System.out.println(result);
-
-                String filename = "/tmp/foo/f75";
-                File dir = new File("/tmp/foo");
-                dir.mkdirs();
-                File outputFile = new File(filename);
-                try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
-                    writer.write(result);
-                } catch (IOException e) {
-                    System.out.println("Error writing to file: " + e.getMessage());
+                    
+                if (c == '\\') {
+                     escapeNext = false;
+                     continue;
                 }
 
-                System.out.print("$ ");
-                continue;
+                if(c == '"'){
+                    insideDoubleQuotes = !insideDoubleQuotes;
+                    continue;
+                }
+                
+               if(!insideDoubleQuotes && Character.isWhitespace(c)){
+                if(output.length() == 0 || output.charAt(output.length()-1) != ' '){
+                    output.append(' ');
+                }
+               }else{
+                output.append(c);
+               }
             }
+            
+                
+            System.out.println(output.toString().trim());
+            System.out.print("$ ");
+            continue;
 
+        }
             if (input.startsWith("cat ")) {
                 String filePaths = input.substring(4).trim();
                 List<String> files = new ArrayList<>();
                 StringBuilder currentFile = new StringBuilder();
-                boolean insideQuotes = false;
+                boolean insideDoubleQuotes = false;
+                boolean escapeNext = false;
                 
                 for (int i = 0; i < filePaths.length(); i++) {
                     char c = filePaths.charAt(i);
-                    if (c == '\'') {
-                        insideQuotes = !insideQuotes;
-                    } else if (c == ' ' && !insideQuotes) {
-                        if (currentFile.length() > 0) {
-                            files.add(currentFile.toString());
-                            currentFile.setLength(0);
-                        }
-                    } else {
+
+                    if(escapeNext) {
+                    if (c == '\\' || c== '$' || c == '"'){
                         currentFile.append(c);
+                    }else{
+                        currentFile.append('\\').append(c);
+                    }escapeNext = false;
+                    continue;
                     }
-                }
-                
-                if (currentFile.length() > 0) {
-                    files.add(currentFile.toString());
-                }
+
+                    if(c=='\\'){
+                        escapeNext = true;
+                        continue;
+                    }
+
+                    if()
             
                 StringBuilder output = new StringBuilder();
                 boolean firstFile = true;
@@ -252,62 +252,6 @@ public class Main {
         }
     }
 
-    private static List<String> parseQuotedText(String text){
-        List<String> parts = new ArrayList<>();
-        StringBuilder currentPart = new StringBuilder();
-        boolean insideSingleQuotes = false;
-        boolean insideDoubleQuotes = false;
-        boolean escaped = false;
-
-        for(int i=0;i<text.length();i++){
-            char c = text.charAt(i);
-
-            if(escaped){
-                if(insideDoubleQuotes){
-                    //in double quotes, only \,$,", and newline retain special meaning
-                    if(c=='\\'||c=='$'||c=='"'||c=='\n'){
-                        currentPart.append(c);
-                    }else{
-                        currentPart.append('\\').append(c);
-                    }
-                }else{
-                    currentPart.append(c);
-                }
-                escaped = false;
-                continue;
-            }
-
-            if(c=='\\' && !insideSingleQuotes){
-                escaped = true;
-                continue;
-            }
-
-            if(c=='"' && !insideSingleQuotes){
-                insideDoubleQuotes = !insideDoubleQuotes;
-                continue;
-            }
-            if (c == '\'' && !insideDoubleQuotes) {
-                insideSingleQuotes = !insideSingleQuotes;
-                continue;
-            }
-            
-            if (c == ' ' && !insideSingleQuotes && !insideDoubleQuotes) {
-                if (currentPart.length() > 0) {
-                    parts.add(currentPart.toString());
-                    currentPart.setLength(0);
-                }
-                continue;
-            }
-            
-            currentPart.append(c);
-        }
-        
-        if (currentPart.length() > 0) {
-            parts.add(currentPart.toString());
-        }
-        
-        return parts;
-    }
 }
 
             
