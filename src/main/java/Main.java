@@ -42,18 +42,22 @@ public class Main {
                 List<String> tokens = parser.parse();
                 StringBuilder output = new StringBuilder();
                 
-                // Join tokens back with a single space
-                for (int i = 0; i < tokens.size(); i++) {
-                    if (i > 0) {
-                        output.append(" ");  // Add a space between tokens, but not at the beginning
+                boolean firstToken = true;
+                for (String token : tokens) {
+                    if (!firstToken) {
+                        // Add space only if it's not the first token
+                        output.append(" ");
                     }
-                    output.append(tokens.get(i));
+                    output.append(token);
+                    firstToken = false;
                 }
             
-                System.out.println(output.toString().trim());  // Ensure there are no extra spaces at the ends
+                // Print the output
+                System.out.println(output.toString());
                 System.out.print("$ ");
                 continue;
             }
+            
             
 
             if (input.startsWith("cat ")) {
