@@ -118,18 +118,18 @@ public class Main {
         
             // Read and concatenate file contents
             StringBuilder finalOutput = new StringBuilder();
-            boolean hasPreviousContent = false; // Tracks if content has been added
+            boolean isFirstFile = true; // Use a flag to avoid adding an initial dot
             for (String filePath : files) {
                 File file = new File(filePath);
                 if (file.exists() && file.isFile()) {
                     try {
-                        String content = String.join("", Files.readAllLines(file.toPath())).trim(); // Trim spaces
-                        if (!content.isEmpty()) { // Only append if content is non-empty
-                            if (hasPreviousContent) {
-                                finalOutput.append("."); // Add a dot between valid contents
+                        String content = String.join("", Files.readAllLines(file.toPath())).trim();
+                        if (!content.isEmpty()) {
+                            if (!isFirstFile) {
+                                finalOutput.append("."); // Add a dot only after the first valid file
                             }
                             finalOutput.append(content);
-                            hasPreviousContent = true; // Mark that content has been added
+                            isFirstFile = false; // Update flag after first content is appended
                         }
                     } catch (IOException e) {
                         System.out.println("cat: " + filePath + ": Error reading file");
@@ -144,6 +144,7 @@ public class Main {
             System.out.print("$ ");
             continue;
         }
+        
         
         
 
