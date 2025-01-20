@@ -125,7 +125,10 @@ public class Main {
                     try {
                         String content = String.join("", Files.readAllLines(file.toPath()));
                         if (!isFirst) {
-                            finalOutput.append(".");
+                            // Check if previous content ended with a dot
+                            if (finalOutput.charAt(finalOutput.length() - 1) != '.') {
+                                finalOutput.append(".");
+                            }
                         }
                         finalOutput.append(content);
                         isFirst = false;
