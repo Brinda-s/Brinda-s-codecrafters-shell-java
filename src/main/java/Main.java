@@ -88,7 +88,7 @@ public class Main {
             boolean insideQuotes = false;
             char quoteChar = '\0';
         
-            // Parse file paths
+            // Parse file paths enclosed in quotes
             for (int i = 0; i < filePaths.length(); i++) {
                 char c = filePaths.charAt(i);
         
@@ -118,7 +118,7 @@ public class Main {
         
             // Read and concatenate file contents
             StringBuilder finalOutput = new StringBuilder();
-            boolean isFirstFile = true; // Use a flag to avoid adding an initial dot
+            boolean isFirstFile = true; // Flag to avoid adding a leading dot
             for (String filePath : files) {
                 File file = new File(filePath);
                 if (file.exists() && file.isFile()) {
@@ -126,10 +126,10 @@ public class Main {
                         String content = String.join("", Files.readAllLines(file.toPath())).trim();
                         if (!content.isEmpty()) {
                             if (!isFirstFile) {
-                                finalOutput.append("."); // Add a dot only after the first valid file
+                                finalOutput.append("."); // Append dot only after first valid content
                             }
                             finalOutput.append(content);
-                            isFirstFile = false; // Update flag after first content is appended
+                            isFirstFile = false; // Set flag to false after first content is appended
                         }
                     } catch (IOException e) {
                         System.out.println("cat: " + filePath + ": Error reading file");
@@ -144,6 +144,7 @@ public class Main {
             System.out.print("$ ");
             continue;
         }
+        
         
         
         
