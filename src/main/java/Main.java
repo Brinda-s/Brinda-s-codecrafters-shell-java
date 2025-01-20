@@ -40,11 +40,21 @@ public class Main {
                 String text = input.substring(5).trim();
                 LineParser parser = new LineParser(text);  // Parse using LineParser
                 List<String> tokens = parser.parse();
-                String output = String.join(" ", tokens);  // Join tokens back with a space
-                System.out.println(output);
+                StringBuilder output = new StringBuilder();
+                
+                // Join tokens back with a single space
+                for (int i = 0; i < tokens.size(); i++) {
+                    if (i > 0) {
+                        output.append(" ");  // Add a space between tokens, but not at the beginning
+                    }
+                    output.append(tokens.get(i));
+                }
+            
+                System.out.println(output.toString().trim());  // Ensure there are no extra spaces at the ends
                 System.out.print("$ ");
                 continue;
             }
+            
 
             if (input.startsWith("cat ")) {
                 String filePaths = input.substring(4).trim();
