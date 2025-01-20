@@ -84,45 +84,41 @@ public class Main {
                 String filePaths = input.substring(4).trim();
                 List<String> files = new ArrayList<>();
                 StringBuilder currentFile = new StringBuilder();
-                boolean insideDoubleQuotes = false;
-                boolean escapeNext = false;
+                boolean insideQuotes = false;
+                char quoteChar = '\0';
                 
                 for (int i = 0; i < filePaths.length(); i++) {
                     char c = filePaths.charAt(i);
 
-                    if(escapeNext) {
-                    if (c == '\\' || c== '$' || c == '"'){
-                        currentFile.append(c);
-                    }else{
-                        currentFile.append('\\').append(c);
-                    }escapeNext = false;
-                    continue;
-                    }
 
-                    if(c=='\\'){
-                        escapeNext = true;
-                        continue;
-                    }
-
-                    if(c== '"'){
-                        insideDoubleQuotes = !insideDoubleQuotes;
-                        continue;
-                    }
-
-                    if(!insideDoubleQuotes && Character.isWhitespace(c)){
-                        if(currentFile.length()>0){
-                            files.add(currentFile.toString());
-                            currentFile.setLength(0);
-                        }
-                        else{
+                    if(c=='"' || c=='\''){
+                        if(insideQuotes && quoteChar ==c){
+                            if(currentFile.length()>0){
+                                files.add(currentFile.toString());
+                                currentFile = new StringBuilder();
+                            }
+                            insideQuotes = false;
+                        }else if(!insideQuotes){
+                            insideQuotes = true;
+                            quoteChar = c;
+                        }else{
                             currentFile.append(c);
                         }
+                    }else if(c==' ' && !insideQuotes){
+                        if(currentFile.length()>0){
+                            files.add(currentFile.toString());
+                            currentFile = new StringBuilder();
+                        }
+                    }else{
+                        currentFile.append(c;)
                     }
+                }
 
-                    if(currentFile.length()>0){
-                        files.add(currentFile.toString());
-                    }
-            
+
+                if(currentFile.length()>0){
+                    files.add(currentFile.toString());
+                }
+
             
                 
                 for (String filePath : files) {
