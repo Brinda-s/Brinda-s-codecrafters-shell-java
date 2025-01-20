@@ -120,21 +120,24 @@ public class Main {
                 }
 
             
-                
+                boolean firstFile = true;
                 for (String filePath : files) {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
                             String content = String.join("", Files.readAllLines(file.toPath()));
-                            // Trim any trailing dots from the file content
-                            System.out.print(content + " ");
-                        }catch (IOException e){
+                           if(!firstFile){
+                            System.out.print(" ");
+                           }
+                           System.out.print(content);
+                           firstFile = false;
+                        }catch(IOException e){
                             System.out.println("cat: " + filePath + ": Error reading file");
                         }
                     }else{
                         System.out.println("cat: " + filePath + ": No such file or directory");
+        }
                     }
-                }
                 System.out.println();
                 System.out.print("$ ");
                 continue;
