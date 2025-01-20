@@ -96,8 +96,9 @@ public class Main {
                             if(currentFile.length()>0){
                                 files.add(currentFile.toString());
                                 currentFile = new StringBuilder();
+
+                                insideQuotes = false;
                             }
-                            insideQuotes = false;
                         }else if(!insideQuotes){
                             insideQuotes = true;
                             quoteChar = c;
@@ -120,17 +121,16 @@ public class Main {
                 }
 
             
-                boolean firstFile = true;
+                StringBuilder finalOutput = new StringBuilder();
                 for (String filePath : files) {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
-                            String content = String.join("", Files.readAllLines(file.toPath()));
-                           if(!firstFile){
-                            System.out.print(" ");
+                            String content = String.join("", Files.readAllLines(file.toPath())).trim();
+                           if(finalOutput.length()>0){
+                            finalOutput.append(".");
                            }
-                           System.out.print(content);
-                           firstFile = false;
+                           finalOutput.append(content);
                         }catch(IOException e){
                             System.out.println("cat: " + filePath + ": Error reading file");
                         }
@@ -138,7 +138,7 @@ public class Main {
                         System.out.println("cat: " + filePath + ": No such file or directory");
         }
                     }
-                System.out.println();
+                System.out.println(finalOutput.toString());
                 System.out.print("$ ");
                 continue;
                   
