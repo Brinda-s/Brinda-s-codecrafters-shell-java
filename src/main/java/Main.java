@@ -118,20 +118,19 @@ public class Main {
         
             // Read and concatenate file contents
             StringBuilder finalOutput = new StringBuilder();
-            boolean isFirst = true;
+            boolean hasPreviousContent = false; // Tracks if content has been added
             for (String filePath : files) {
                 File file = new File(filePath);
                 if (file.exists() && file.isFile()) {
                     try {
-                        String content = String.join("", Files.readAllLines(file.toPath()));
-                        if (!isFirst) {
-                            // Check if previous content ended with a dot
-                            if (finalOutput.charAt(finalOutput.length() - 1) != '.') {
-                                finalOutput.append(".");
+                        String content = String.join("", Files.readAllLines(file.toPath())).trim(); // Trim spaces
+                        if (!content.isEmpty()) { // Only append if content is non-empty
+                            if (hasPreviousContent) {
+                                finalOutput.append("."); // Add a dot between valid contents
                             }
+                            finalOutput.append(content);
+                            hasPreviousContent = true; // Mark that content has been added
                         }
-                        finalOutput.append(content);
-                        isFirst = false;
                     } catch (IOException e) {
                         System.out.println("cat: " + filePath + ": Error reading file");
                     }
@@ -140,11 +139,12 @@ public class Main {
                 }
             }
         
+            // Print the concatenated content
             System.out.println(finalOutput.toString());
             System.out.print("$ ");
             continue;
         }
-
+        
         
 
             // Rest of the shell implementation remains the same...
