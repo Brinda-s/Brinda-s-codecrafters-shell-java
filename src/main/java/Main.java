@@ -40,46 +40,47 @@ public class Main {
                 StringBuilder output = new StringBuilder();
                 boolean insideDoubleQuotes = false;
                 boolean escapeNext = false;
-                
+            
                 for (int i = 0; i < text.length(); i++) {
                     char c = text.charAt(i);
-                    
-                    if(escapeNext){
-
-                    if (c == '\\' || c=='$' || c=='"') {
-                       output.append(c);
-                    }else{
-                        output.append('\\').append(c);
+            
+                    if (escapeNext) {
+                        // Handle escape sequences
+                        if (c == '\\' || c == '$' || c == '"' || c == '\n') {
+                            output.append(c);
+                        } else {
+                            output.append('\\').append(c);  // Escape any other character
+                        }
+                        escapeNext = false;
+                        continue;
                     }
-                    escapeNext = false;
-                    continue;
+            
+                    if (c == '\\') {
+                        escapeNext = true;  // Set flag to escape the next character
+                        continue;
+                    }
+            
+                    if (c == '"') {
+                        insideDoubleQuotes = !insideDoubleQuotes;  // Toggle the double-quote flag
+                        continue;
+                    }
+            
+                    // If we're not inside quotes and the character is whitespace, add a single space
+                    if (!insideDoubleQuotes && Character.isWhitespace(c)) {
+                        if (output.length() == 0 || output.charAt(output.length() - 1) != ' ') {
+                            output.append(' ');
+                        }
+                    } else {
+                        output.append(c);  // Add the character to the output
+                    }
                 }
-                    
-                if (c == '\\') {
-                     escapeNext = false;
-                     continue;
-                }
-
-                if(c == '"'){
-                    insideDoubleQuotes = !insideDoubleQuotes;
-                    continue;
-                }
-                
-               if(!insideDoubleQuotes && Character.isWhitespace(c)){
-                if(output.length() == 0 || output.charAt(output.length()-1) != ' '){
-                    output.append(' ');
-                }
-               }else{
-                output.append(c);
-               }
+            
+                // Output the final result, trimmed to remove leading/trailing spaces
+                System.out.println(output.toString().trim());
+                System.out.print("$ ");
+                continue;
             }
             
-                
-            System.out.println(output.toString().trim());
-            System.out.print("$ ");
-            continue;
-
-        }
 
         if (input.startsWith("cat ")) {
             String filePaths = input.substring(4).trim();
