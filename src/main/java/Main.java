@@ -81,69 +81,70 @@ public class Main {
 
         }
 
-       if (input.startsWith("cat ")) {
-        String filePaths = input.substring(4).trim();
-        List<String> files = new ArrayList<>();
-        StringBuilder currentFile = new StringBuilder();
-        boolean insideQuotes = false;
-        char quoteChar = '\0';
-
-        // Parse file paths
-        for (int i = 0; i < filePaths.length(); i++) {
-            char c = filePaths.charAt(i);
-
-            if (c == '"' || c == '\'') {
-                if (insideQuotes && quoteChar == c) {
-                    files.add(currentFile.toString());
-                    currentFile = new StringBuilder();
-                    insideQuotes = false;
-                } else if (!insideQuotes) {
-                    insideQuotes = true;
-                    quoteChar = c;
+        if (input.startsWith("cat ")) {
+            String filePaths = input.substring(4).trim();
+            List<String> files = new ArrayList<>();
+            StringBuilder currentFile = new StringBuilder();
+            boolean insideQuotes = false;
+            char quoteChar = '\0';
+        
+            // Parse file paths
+            for (int i = 0; i < filePaths.length(); i++) {
+                char c = filePaths.charAt(i);
+        
+                if (c == '"' || c == '\'') {
+                    if (insideQuotes && quoteChar == c) {
+                        files.add(currentFile.toString());
+                        currentFile = new StringBuilder();
+                        insideQuotes = false;
+                    } else if (!insideQuotes) {
+                        insideQuotes = true;
+                        quoteChar = c;
+                    } else {
+                        currentFile.append(c);
+                    }
+                } else if (c == ' ' && !insideQuotes) {
+                    if (currentFile.length() > 0) {
+                        files.add(currentFile.toString());
+                        currentFile = new StringBuilder();
+                    }
                 } else {
                     currentFile.append(c);
                 }
-            } else if (c == ' ' && !insideQuotes) {
-                if (currentFile.length() > 0) {
-                    files.add(currentFile.toString());
-                    currentFile = new StringBuilder();
-                }
-            } else {
-                currentFile.append(c);
             }
-        }
-        if (currentFile.length() > 0) {
-            files.add(currentFile.toString());
-        }
-
-        // Read and concatenate file contents
-        StringBuilder finalOutput = new StringBuilder();
-        boolean firstContent = true; // Track if it's the first non-empty content
-        for (String filePath : files) {
-            File file = new File(filePath);
-            if (file.exists() && file.isFile()) {
-                try {
-                    String content = String.join("", Files.readAllLines(file.toPath())).trim(); // Trim trailing/leading spaces
-                    if (!content.isEmpty()) {
-                        if (!firstContent) {
-                            finalOutput.append("."); // Append a dot only after the first content
+            if (currentFile.length() > 0) {
+                files.add(currentFile.toString());
+            }
+        
+            // Read and concatenate file contents
+            StringBuilder finalOutput = new StringBuilder();
+            boolean firstFile = true; // Track if it's the first valid content
+            for (String filePath : files) {
+                File file = new File(filePath);
+                if (file.exists() && file.isFile()) {
+                    try {
+                        String content = String.join("", Files.readAllLines(file.toPath())).trim(); // Trim spaces
+                        if (!content.isEmpty()) { // Only add content if it's non-empty
+                            if (!firstFile) {
+                                finalOutput.append("."); // Append dot only after first content
+                            }
+                            finalOutput.append(content);
+                            firstFile = false; // Update after adding the first file's content
                         }
-                        finalOutput.append(content);
-                        firstContent = false; // Update flag after appending first content
+                    } catch (IOException e) {
+                        System.out.println("cat: " + filePath + ": Error reading file");
                     }
-                } catch (IOException e) {
-                    System.out.println("cat: " + filePath + ": Error reading file");
+                } else {
+                    System.out.println("cat: " + filePath + ": No such file or directory");
                 }
-            } else {
-                System.out.println("cat: " + filePath + ": No such file or directory");
             }
+        
+            // Print the concatenated content
+            System.out.println(finalOutput.toString());
+            System.out.print("$ ");
+            continue;
         }
-
-    // Print the concatenated content
-    System.out.println(finalOutput.toString());
-    System.out.print("$ ");
-    continue;
-}
+        
 
         
 
