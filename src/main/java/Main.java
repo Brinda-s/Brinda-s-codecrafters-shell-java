@@ -35,87 +35,21 @@ public class Main {
                 continue;
             }
 
+            // Use the LineParser for echo and cat commands to handle quotes
             if (input.startsWith("echo ")) {
                 String text = input.substring(5).trim();
-                StringBuilder output = new StringBuilder();
-                boolean insideDoubleQuotes = false;
-                boolean escapeNext = false;
-            
-                for (int i = 0; i < text.length(); i++) {
-                    char c = text.charAt(i);
-            
-                    if (escapeNext) {
-                        // Handle escape sequences
-                        if (c == '\\' || c == '$' || c == '"' || c == '\n') {
-                            output.append(c);
-                        } else {
-                            output.append('\\').append(c);  // Escape any other character
-                        }
-                        escapeNext = false;
-                        continue;
-                    }
-            
-                    if (c == '\\') {
-                        escapeNext = true;  // Set flag to escape the next character
-                        continue;
-                    }
-            
-                    if (c == '"') {
-                        insideDoubleQuotes = !insideDoubleQuotes;  // Toggle the double-quote flag
-                        continue;
-                    }
-            
-                    // If we're not inside quotes and the character is whitespace, add a single space
-                    if (!insideDoubleQuotes && Character.isWhitespace(c)) {
-                        if (output.length() == 0 || output.charAt(output.length() - 1) != ' ') {
-                            output.append(' ');
-                        }
-                    } else {
-                        output.append(c);  // Add the character to the output
-                    }
-                }
-            
-                // Output the final result, trimmed to remove leading/trailing spaces
-                System.out.println(output.toString().trim());
+                LineParser parser = new LineParser(text);  // Parse using LineParser
+                List<String> tokens = parser.parse();
+                String output = String.join(" ", tokens);  // Join tokens back with a space
+                System.out.println(output);
                 System.out.print("$ ");
                 continue;
             }
-            
 
             if (input.startsWith("cat ")) {
                 String filePaths = input.substring(4).trim();
-                List<String> files = new ArrayList<>();
-                StringBuilder currentFile = new StringBuilder();
-                boolean insideQuotes = false;
-                char quoteChar = '\0';
-                
-                // Parse file paths enclosed in quotes
-                for (int i = 0; i < filePaths.length(); i++) {
-                    char c = filePaths.charAt(i);
-                
-                    if (c == '"' || c == '\'') {
-                        if (insideQuotes && quoteChar == c) {
-                            files.add(currentFile.toString());
-                            currentFile = new StringBuilder();
-                            insideQuotes = false;
-                        } else if (!insideQuotes) {
-                            insideQuotes = true;
-                            quoteChar = c;
-                        } else {
-                            currentFile.append(c);
-                        }
-                    } else if (c == ' ' && !insideQuotes) {
-                        if (currentFile.length() > 0) {
-                            files.add(currentFile.toString());
-                            currentFile = new StringBuilder();
-                        }
-                    } else {
-                        currentFile.append(c);
-                    }
-                }
-                if (currentFile.length() > 0) {
-                    files.add(currentFile.toString());
-                }
+                LineParser parser = new LineParser(filePaths);  // Parse file paths with quotes
+                List<String> files = parser.parse();
                 
                 // Read and concatenate file contents
                 StringBuilder finalOutput = new StringBuilder();
@@ -140,14 +74,12 @@ public class Main {
                         System.out.println("cat: " + filePath + ": No such file or directory");
                     }
                 }
-                
+
                 // Print the concatenated content
                 System.out.println(finalOutput.toString());
                 System.out.print("$ ");
                 continue;
             }
-            
-        
         
         
 
