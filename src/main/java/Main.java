@@ -110,7 +110,7 @@ public class Main {
                             currentFile = new StringBuilder();
                         }
                     }else{
-                        currentFile.append(c;)
+                        currentFile.append(c);
                     }
                 }
 
@@ -252,7 +252,7 @@ public class Main {
     }
 
 }
-}
+
 
             
       
