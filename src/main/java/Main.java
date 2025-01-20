@@ -59,6 +59,7 @@ public class Main {
             }
             
             
+            
 
             if (input.startsWith("cat ")) {
                 String filePaths = input.substring(4).trim();
