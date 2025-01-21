@@ -25,15 +25,30 @@ public class LineParser {
             char c = input.charAt(index);
             
             if (escaped) {
-                // If we're in escape mode, append the current character literally
+                // When escaped, always append both the backslash and the character
+                if (inDoubleQuotes || inSingleQuotes) {
+                    currentToken.append(ESCAPE);
+                }
                 currentToken.append(c);
                 escaped = false;
             } else if (c == ESCAPE) {
-                // Enter escape mode, but only if not in single quotes
-                if (!inSingleQuotes) {
-                    escaped = true;
-                } else {
+                if (inSingleQuotes) {
+                    // In single quotes, treat backslash as literal
                     currentToken.append(c);
+                } else if (inDoubleQuotes) {
+                    // In double quotes, preserve backslash for file paths
+                    if (index + 1 < input.length()) {
+                        char nextChar = input.charAt(index + 1);
+                        if (nextChar == SINGLE || nextChar == DOUBLE || nextChar == ESCAPE) {
+                            escaped = true;
+                        } else {
+                            currentToken.append(c);
+                        }
+                    } else {
+                        currentToken.append(c);
+                    }
+                } else {
+                    escaped = true;
                 }
             } else if (c == SINGLE && !inDoubleQuotes) {
                 inSingleQuotes = !inSingleQuotes;
