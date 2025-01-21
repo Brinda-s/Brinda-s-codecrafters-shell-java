@@ -55,19 +55,16 @@ public class Main {
                 List<String> files = parser.parse();
                 
                 StringBuilder finalOutput = new StringBuilder();
+                List<String> contents = new ArrayList<>();
                 
-                for (int i = 0; i < files.size(); i++) {
-                    String filePath = files.get(i);
+                // First collect all non-empty contents
+                for (String filePath : files) {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
                             String content = String.join("", Files.readAllLines(file.toPath()));
                             if (!content.isEmpty()) {
-                                if (finalOutput.length() > 0) {
-                                    // Only add dot if we already have content and current content is non-empty
-                                    finalOutput.append(".");
-                                }
-                                finalOutput.append(content);
+                                contents.add(content);
                             }
                         } catch (IOException e) {
                             System.out.println("cat: " + filePath + ": Error reading file");
@@ -77,10 +74,19 @@ public class Main {
                     }
                 }
                 
+                // Then join them with single dots
+                for (int i = 0; i < contents.size(); i++) {
+                    finalOutput.append(contents.get(i));
+                    if (i < contents.size() - 1) {
+                        finalOutput.append(".");
+                    }
+                }
+                
                 System.out.println(finalOutput);
                 System.out.print("$ ");
                 continue;
             }
+            
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
