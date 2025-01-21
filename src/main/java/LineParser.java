@@ -33,14 +33,11 @@ public class LineParser {
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
-                    // Handle escape sequences in double quotes
-                    if (c == ESCAPE || c == DOUBLE || c == 'n') {
-                        if (c == 'n') {
-                            currentToken.append('\n');
-                        } else {
-                            currentToken.append(c);
-                        }
+                    // Inside double quotes, only escape quotes and backslashes
+                    if (c == DOUBLE || c == ESCAPE) {
+                        currentToken.append(c);
                     } else {
+                        // For other escaped characters, keep both the backslash and char
                         currentToken.append(ESCAPE).append(c);
                     }
                     escaped = false;
@@ -54,8 +51,13 @@ public class LineParser {
             } else {
                 // Outside quotes
                 if (escaped) {
-                    // When escaped outside quotes, treat every character literally
-                    currentToken.append(c);
+                    // When escaped outside quotes, always include the character literally
+                    if (c == '\n') {
+                        // Handle actual newlines in input
+                        currentToken.append(ESCAPE).append('n');
+                    } else {
+                        currentToken.append(c);
+                    }
                     escaped = false;
                 } else if (c == ESCAPE) {
                     escaped = true;
@@ -63,7 +65,7 @@ public class LineParser {
                     inSingleQuotes = true;
                 } else if (c == DOUBLE) {
                     inDoubleQuotes = true;
-                } else if (Character.isWhitespace(c) && !escaped) {
+                } else if (Character.isWhitespace(c)) {
                     if (currentToken.length() > 0) {
                         result.add(currentToken.toString());
                         currentToken.setLength(0);
@@ -77,8 +79,8 @@ public class LineParser {
         }
         
         // Handle any remaining escaped character at the end
-        if (escaped && index < input.length()) {
-            currentToken.append(input.charAt(index));
+        if (escaped) {
+            currentToken.append(ESCAPE);
         }
         
         // Add remaining token if exists
