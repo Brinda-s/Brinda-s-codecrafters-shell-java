@@ -19,10 +19,12 @@ public class LineParser {
         boolean insideSingleQuotes = false;
         boolean insideDoubleQuotes = false;
 
+        boolean firstToken = true; // Flag to handle first token's leading space
+
         while (index < input.length()) {
             char currentChar = input.charAt(index);
 
-            // Handle different states based on quote characters
+            // Handle entering and exiting quotes (single or double)
             if (currentChar == SINGLE) {
                 if (insideSingleQuotes) {
                     tokens.add(token.toString());  // Add current token
@@ -36,24 +38,50 @@ public class LineParser {
                 }
                 insideDoubleQuotes = !insideDoubleQuotes;  // Toggle double quote state
             } else if (Character.isWhitespace(currentChar)) {
-                if (!insideSingleQuotes && !insideDoubleQuotes && token.length() > 0) {
-                    tokens.add(token.toString());  // Add token for spaces outside quotes
-                    token.setLength(0);  // Reset for next token
+                if (insideSingleQuotes || insideDoubleQuotes) {
+                    token.append(currentChar);  // Inside quotes, space is part of the token
                 } else {
-                    token.append(currentChar);  // Inside quotes, keep spaces as part of the token
+                    // If outside quotes, treat space as a separator
+                    if (token.length() > 0) {
+                        tokens.add(token.toString());  // Add token
+                        token.setLength(0);  // Reset for next token
+                    }
                 }
+                firstToken = false;  // After first space, no longer treat it as leading space
             } else {
-                token.append(currentChar);  // Add non-whitespace characters to the current token
+                token.append(currentChar);  // Add non-whitespace character to the current token
             }
 
             index++;
         }
 
-        // Add the last token if it exists
+        // Add last token if any
         if (token.length() > 0) {
             tokens.add(token.toString());
         }
 
-        return tokens;
+        // Now, ensure no extra spaces between quoted strings
+        List<String> finalTokens = new ArrayList<>();
+        StringBuilder concatenatedToken = new StringBuilder();
+
+        for (String currentToken : tokens) {
+            if (concatenatedToken.length() > 0 && !currentToken.startsWith("\"") && !currentToken.startsWith("\'")) {
+                // Concatenate directly without adding spaces
+                concatenatedToken.append(currentToken);
+            } else {
+                if (concatenatedToken.length() > 0) {
+                    finalTokens.add(concatenatedToken.toString());
+                }
+                concatenatedToken.setLength(0);  // Reset for next token
+                concatenatedToken.append(currentToken);
+            }
+        }
+
+        // Add the last concatenated token
+        if (concatenatedToken.length() > 0) {
+            finalTokens.add(concatenatedToken.toString());
+        }
+
+        return finalTokens;
     }
 }
