@@ -88,7 +88,9 @@ public class Main {
                 System.out.println(output);
                 System.out.print("$ ");
                 continue;
-            }       
+            }
+            
+               
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
