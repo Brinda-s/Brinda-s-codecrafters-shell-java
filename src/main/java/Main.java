@@ -1,8 +1,6 @@
 import java.util.Scanner;
 import java.util.Set;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -36,7 +34,6 @@ public class Main {
             }
 
             // Use the LineParser for echo and cat commands to handle quotes
-            // Inside your main method, echo handling
             if (input.startsWith("echo ")) {
                 String text = input.substring(5).trim();
                 LineParser parser = new LineParser(text);  // Parse using LineParser
@@ -58,9 +55,6 @@ public class Main {
                 System.out.print("$ ");
                 continue;
             }
-
-            
-            
 
             if (input.startsWith("cat ")) {
                 String filePaths = input.substring(4).trim();
@@ -97,9 +91,6 @@ public class Main {
                 continue;
             }
         
-        
-
-            // Rest of the shell implementation remains the same...
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
@@ -210,7 +201,3 @@ public class Main {
     }
 
 }
-
-
-            
-      
