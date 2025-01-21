@@ -53,18 +53,15 @@ public class Main {
                 String filePaths = input.substring(4).trim();
                 LineParser parser = new LineParser(filePaths);
                 List<String> files = parser.parse();
+                List<String> nonEmptyContents = new ArrayList<>();
                 
-                StringBuilder finalOutput = new StringBuilder();
-                List<String> contents = new ArrayList<>();
-                
-                // First collect all non-empty contents
                 for (String filePath : files) {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
                             String content = String.join("", Files.readAllLines(file.toPath()));
                             if (!content.isEmpty()) {
-                                contents.add(content);
+                                nonEmptyContents.add(content);
                             }
                         } catch (IOException e) {
                             System.out.println("cat: " + filePath + ": Error reading file");
@@ -74,19 +71,12 @@ public class Main {
                     }
                 }
                 
-                // Then join them with single dots
-                for (int i = 0; i < contents.size(); i++) {
-                    finalOutput.append(contents.get(i));
-                    if (i < contents.size() - 1) {
-                        finalOutput.append(".");
-                    }
-                }
-                
-                System.out.println(finalOutput);
+                // Use String.join to ensure exactly one dot between contents
+                System.out.println(String.join(".", nonEmptyContents));
                 System.out.print("$ ");
                 continue;
             }
-            
+
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
