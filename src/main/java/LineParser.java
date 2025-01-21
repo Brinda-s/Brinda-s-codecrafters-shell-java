@@ -3,7 +3,6 @@ import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.List;
 
-// LineParser class should handle spaces correctly within quoted strings
 public class LineParser {
     public static final char SPACE = ' ';
     public static final char SINGLE = '\'';
@@ -25,22 +24,27 @@ public class LineParser {
 
         while ((character = iterator.next()) != CharacterIterator.DONE) {
             switch (character) {
-                case SINGLE -> {
+                case SINGLE:
                     insideSingleQuotes = !insideSingleQuotes;  // Toggle insideSingleQuotes
                     if (!insideSingleQuotes) {
-                        tokens.add(stringBuilder.toString());  // End of single quoted string
+                        // End of single-quoted string
+                        tokens.add(stringBuilder.toString());
                         stringBuilder.setLength(0);  // Reset for next token
                     }
-                }
-                case DOUBLE -> {
+                    break;
+                case DOUBLE:
                     insideDoubleQuotes = !insideDoubleQuotes;  // Toggle insideDoubleQuotes
                     if (!insideDoubleQuotes) {
-                        tokens.add(stringBuilder.toString());  // End of double quoted string
+                        // End of double-quoted string
+                        tokens.add(stringBuilder.toString());
                         stringBuilder.setLength(0);  // Reset for next token
                     }
-                }
-                case SPACE -> handleSpace(tokens, insideDoubleQuotes, insideSingleQuotes);
-                default -> stringBuilder.append(character);  // Add character to the current token
+                    break;
+                case SPACE:
+                    handleSpace(tokens, insideSingleQuotes, insideDoubleQuotes);
+                    break;
+                default:
+                    stringBuilder.append(character);  // Add character to the current token
             }
         }
 
@@ -51,44 +55,16 @@ public class LineParser {
         return tokens;
     }
 
-    private void handleSpace(List<String> tokens, boolean insideDoubleQuotes, boolean insideSingleQuotes) {
-        // Only add a space if we're not inside quotes
+    private void handleSpace(List<String> tokens, boolean insideSingleQuotes, boolean insideDoubleQuotes) {
+        // Only treat space as a separator if we are not inside quotes
         if (!insideSingleQuotes && !insideDoubleQuotes) {
             if (stringBuilder.length() > 0) {
                 tokens.add(stringBuilder.toString());  // Add the token
-                stringBuilder.setLength(0);  // Reset the stringBuilder for the next token
+                stringBuilder.setLength(0);  // Reset for the next token
             }
         } else {
-            // Inside quotes, just append the space as part of the current token
+            // Inside quotes, treat space as part of the token
             stringBuilder.append(SPACE);
         }
-    }
-    
-
-    private void singleQuote() {
-        char character;
-        while ((character = iterator.next()) != CharacterIterator.DONE && character != SINGLE) {
-            stringBuilder.append(character);
-        }
-    }
-
-    private void doubleQuote() {
-        char character;
-        while ((character = iterator.next()) != CharacterIterator.DONE && character != DOUBLE) {
-            if (character == '\\') {
-                handleEscapeSequence();
-            } else {
-                stringBuilder.append(character);
-            }
-        }
-    }
-
-    private void handleEscapeSequence() {
-        char nextChar = iterator.current();
-        switch (nextChar) {
-            case '\\', '$', '"', '\n' -> stringBuilder.append(nextChar);
-            default -> stringBuilder.append('\\').append(nextChar);
-        }
-        iterator.next(); // Skip the next character (which is escaped)
     }
 }
