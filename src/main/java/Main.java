@@ -92,6 +92,7 @@ public class Main {
                 continue;
             }
             
+            
                
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
