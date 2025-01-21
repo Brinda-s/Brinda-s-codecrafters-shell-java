@@ -1,5 +1,7 @@
+
 import java.util.ArrayList;
 import java.util.List;
+
 
 public class LineParser {
     public static final char SINGLE = '\'';
@@ -25,7 +27,7 @@ public class LineParser {
             char c = input.charAt(index);
             
             if (inSingleQuotes) {
-                // In single quotes, everything is literal
+                // In single quotes, everything is literal except the closing quote
                 if (c == SINGLE) {
                     inSingleQuotes = false;
                 } else {
@@ -33,11 +35,10 @@ public class LineParser {
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
-                    // Inside double quotes, only escape quotes and backslashes
+                    // Handle escape sequences in double quotes
                     if (c == DOUBLE || c == ESCAPE) {
                         currentToken.append(c);
                     } else {
-                        // For other escaped characters, keep both the backslash and char
                         currentToken.append(ESCAPE).append(c);
                     }
                     escaped = false;
@@ -51,13 +52,7 @@ public class LineParser {
             } else {
                 // Outside quotes
                 if (escaped) {
-                    // When escaped outside quotes, always include the character literally
-                    if (c == '\n') {
-                        // Handle actual newlines in input
-                        currentToken.append(ESCAPE).append('n');
-                    } else {
-                        currentToken.append(c);
-                    }
+                    currentToken.append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
                     escaped = true;
@@ -76,11 +71,6 @@ public class LineParser {
             }
             
             index++;
-        }
-        
-        // Handle any remaining escaped character at the end
-        if (escaped) {
-            currentToken.append(ESCAPE);
         }
         
         // Add remaining token if exists
