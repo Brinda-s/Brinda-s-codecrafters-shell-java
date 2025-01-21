@@ -39,7 +39,7 @@ public class Main {
                 LineParser parser = new LineParser(text);  // Parse using LineParser
                 List<String> tokens = parser.parse();
                 StringBuilder output = new StringBuilder();
-                
+            
                 boolean firstToken = true;
                 for (String token : tokens) {
                     if (!firstToken) {
@@ -49,7 +49,7 @@ public class Main {
                     output.append(token);
                     firstToken = false;
                 }
-
+            
                 // Print the output
                 System.out.println(output.toString());
                 System.out.print("$ ");
