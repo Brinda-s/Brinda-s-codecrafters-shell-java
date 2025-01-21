@@ -53,9 +53,9 @@ public class LineParser {
                     currentToken.setLength(0);
                 }
             } else {
-                // Append character to the current token
+                // Handle inside single quotes - treat backslashes literally
                 if (inSingleQuotes) {
-                    // In single quotes, treat backslashes literally
+                    // Just append the backslash as a literal backslash inside single quotes
                     if (c == ESCAPE) {
                         currentToken.append(ESCAPE);
                     } else {
