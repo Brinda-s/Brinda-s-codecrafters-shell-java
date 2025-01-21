@@ -15,7 +15,7 @@ public class LineParser {
 
     public List<String> parse() {
         List<String> tokens = new ArrayList<>();
-        StringBuilder token = new StringBuilder(); // Renamed from `token` to `resultToken`
+        StringBuilder token = new StringBuilder();
         boolean insideSingleQuotes = false;
         boolean insideDoubleQuotes = false;
 
@@ -80,7 +80,7 @@ public class LineParser {
             finalTokens.add(concatenatedToken.toString());
         }
 
-        // **Fix**: Ensure no spaces between quoted tokens
+        // **Fix**: Ensure spaces between non-quoted tokens and avoid concatenating too closely
         List<String> finalResult = new ArrayList<>();
         StringBuilder resultToken = new StringBuilder(); // Renamed to `resultToken`
         boolean lastWasQuoted = false;
@@ -104,6 +104,10 @@ public class LineParser {
                     resultToken.setLength(0);  // Reset
                 }
                 lastWasQuoted = false;
+                // Add space between non-quoted tokens if they are separate
+                if (resultToken.length() > 0) {
+                    resultToken.append(" ");  // Add a space between separate non-quoted tokens
+                }
                 resultToken.append(currentToken);  // For non-quoted tokens, keep adding
             }
         }
