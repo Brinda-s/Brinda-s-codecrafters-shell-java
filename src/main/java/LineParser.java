@@ -109,24 +109,30 @@ public class LineParser {
             File file = new File(filePath);
             File parentDir = file.getParentFile();
     
-            // Create the directory structure if it doesn't exist
+            // Ensure the parent directory exists, create it if it doesn't
             if (parentDir != null && !parentDir.exists()) {
-                parentDir.mkdirs();
+                if (!parentDir.mkdirs()) {
+                    System.err.println("Failed to create directories: " + parentDir);
+                    return;
+                }
             }
     
             // Create the file if it doesn't exist
-            file.createNewFile();
-    
-            // Write the command output to the file
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-                for (String token : commandArgs) {
-                    writer.write(token + " ");
+            if (file.createNewFile() || file.exists()) {
+                // Write the command output to the file
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+                    for (String token : commandArgs) {
+                        writer.write(token + " ");
+                    }
+                    writer.newLine();
                 }
-                writer.newLine();
+            } else {
+                System.err.println("Failed to create file: " + filePath);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+    
     
 }
