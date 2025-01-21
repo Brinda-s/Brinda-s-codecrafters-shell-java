@@ -57,35 +57,38 @@ public class Main {
                 List<String> files = parser.parse();
                 List<String> contents = new ArrayList<>();
                 
-                // First collect all non-empty contents
+                // First check all files and collect contents
+                boolean hasError = false;
                 for (String filePath : files) {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
                             byte[] bytes = Files.readAllBytes(file.toPath());
                             String content = new String(bytes);
-                            if (content.length() > 0) {
-                                contents.add(content);
-                            }
+                            contents.add(content);
                         } catch (IOException e) {
                             System.out.println("cat: " + filePath + ": Error reading file");
+                            hasError = true;
                         }
                     } else {
                         System.out.println("cat: " + filePath + ": No such file or directory");
+                        hasError = true;
                     }
                 }
                 
-                // Then join them manually with exactly one dot between each content
-                StringBuilder output = new StringBuilder();
-                for (int i = 0; i < contents.size(); i++) {
-                    output.append(contents.get(i));
-                    // Only append a dot if this isn't the last content
-                    if (i < contents.size() - 1) {
-                        output.append('.');
+                // If no errors occurred, print the contents
+                if (!hasError) {
+                    StringBuilder output = new StringBuilder();
+                    for (int i = 0; i < contents.size(); i++) {
+                        output.append(contents.get(i));
+                        // Only append a dot if this isn't the last content AND if the current content isn't empty
+                        if (i < contents.size() - 1) {
+                            output.append('.');
+                        }
                     }
+                    System.out.println(output);
                 }
                 
-                System.out.println(output);
                 System.out.print("$ ");
                 continue;
             }
