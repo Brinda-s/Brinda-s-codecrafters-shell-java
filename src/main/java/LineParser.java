@@ -68,6 +68,10 @@ public class LineParser {
         
         // Handle any remaining token
         if (currentToken.length() > 0) {
+            // Remove trailing backslash if inside double quotes
+            if (inDoubleQuotes && currentToken.charAt(currentToken.length() - 1) == ESCAPE) {
+                currentToken.setLength(currentToken.length() - 1);
+            }
             result.add(currentToken.toString());
         }
         
