@@ -25,51 +25,52 @@ public class LineParser {
         while (index < input.length()) {
             char c = input.charAt(index);
 
-            if (inSingleQuotes) {
-                // Inside single quotes, everything is literal - no escaping
-                if (c == SINGLE) {
-                    inSingleQuotes = false;
-                } else {
-                    currentToken.append(c);
-                }
-            } else if (escaped) {
-                // Handle escape sequences (only outside single quotes)
-                if (inDoubleQuotes) {
-                    // Inside double quotes, only certain characters are escaped
-                    if (c == ESCAPE || c == DOUBLE || c == '\\' || c == 'n') {
-                        if (c == 'n') {
-                            currentToken.append('\n');
-                        } else {
-                            currentToken.append(c);
-                        }
+            if (escaped) {
+                // Handle escape sequences inside double quotes
+                if (c == ESCAPE || c == '"' || c == '\\' || c == 'n') {
+                    if (c == 'n') {
+                        currentToken.append('\n'); // Handle newline escape
                     } else {
-                        currentToken.append(ESCAPE).append(c);
+                        currentToken.append(c); // Handle other escape sequences
                     }
                 } else {
-                    // Outside quotes, everything can be escaped
-                    currentToken.append(c);
+                    // Invalid escape sequence
+                    currentToken.append(ESCAPE).append(c);
                 }
                 escaped = false;
-            } else if (c == ESCAPE && !inSingleQuotes) {
-                // Start escape sequence (only outside single quotes)
+            } else if (c == ESCAPE) {
+                // Handle start of escape sequence inside double quotes
                 escaped = true;
-            } else if (c == SINGLE) {
-                inSingleQuotes = true;
+            } else if (c == SINGLE && !inDoubleQuotes) {
+                // Toggle single quote only when not inside double quotes
+                inSingleQuotes = !inSingleQuotes;
             } else if (c == DOUBLE && !inSingleQuotes) {
+                // Toggle double quote only when not inside single quotes
                 inDoubleQuotes = !inDoubleQuotes;
             } else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
+                // Add token if not in quotes and whitespace encountered
                 if (currentToken.length() > 0) {
                     result.add(currentToken.toString());
                     currentToken.setLength(0);
                 }
             } else {
-                currentToken.append(c);
+                // Handle inside single quotes - treat backslashes literally
+                if (inSingleQuotes) {
+                    // Just append the backslash as a literal backslash inside single quotes
+                    if (c == ESCAPE) {
+                        currentToken.append(ESCAPE);
+                    } else {
+                        currentToken.append(c);
+                    }
+                } else {
+                    currentToken.append(c);
+                }
             }
 
             index++;
         }
 
-        // Add remaining token if exists
+        // Add remaining token to the result
         if (currentToken.length() > 0) {
             result.add(currentToken.toString());
         }
