@@ -57,7 +57,7 @@ public class LineParser {
             }
         }
 
-        // Add last token if any
+        // Add the last token if any
         if (stringBuilder.length() > 0) {
             tokens.add(stringBuilder.toString());
         }
