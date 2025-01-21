@@ -1,4 +1,3 @@
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,7 +25,7 @@ public class LineParser {
             char c = input.charAt(index);
             
             if (inSingleQuotes) {
-                // In single quotes, everything is literal except the closing quote
+                // In single quotes, everything is literal
                 if (c == SINGLE) {
                     inSingleQuotes = false;
                 } else {
@@ -55,6 +54,7 @@ public class LineParser {
             } else {
                 // Outside quotes
                 if (escaped) {
+                    // When escaped outside quotes, treat every character literally
                     currentToken.append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
@@ -63,7 +63,7 @@ public class LineParser {
                     inSingleQuotes = true;
                 } else if (c == DOUBLE) {
                     inDoubleQuotes = true;
-                } else if (Character.isWhitespace(c)) {
+                } else if (Character.isWhitespace(c) && !escaped) {
                     if (currentToken.length() > 0) {
                         result.add(currentToken.toString());
                         currentToken.setLength(0);
@@ -74,6 +74,11 @@ public class LineParser {
             }
             
             index++;
+        }
+        
+        // Handle any remaining escaped character at the end
+        if (escaped && index < input.length()) {
+            currentToken.append(input.charAt(index));
         }
         
         // Add remaining token if exists
