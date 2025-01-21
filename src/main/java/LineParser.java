@@ -27,14 +27,16 @@ public class LineParser {
                 case SINGLE:
                     insideSingleQuotes = !insideSingleQuotes;  // Toggle insideSingleQuotes
                     if (!insideSingleQuotes) {
-                        tokens.add(stringBuilder.toString());  // End of single-quoted string
+                        // End of single-quoted string
+                        tokens.add(stringBuilder.toString());
                         stringBuilder.setLength(0);  // Reset for next token
                     }
                     break;
                 case DOUBLE:
                     insideDoubleQuotes = !insideDoubleQuotes;  // Toggle insideDoubleQuotes
                     if (!insideDoubleQuotes) {
-                        tokens.add(stringBuilder.toString());  // End of double-quoted string
+                        // End of double-quoted string
+                        tokens.add(stringBuilder.toString());
                         stringBuilder.setLength(0);  // Reset for next token
                     }
                     break;
