@@ -26,9 +26,7 @@ public class LineParser {
             
             if (escaped) {
                 // When escaped, always append both the backslash and the character
-                if (inDoubleQuotes || inSingleQuotes) {
-                    currentToken.append(ESCAPE);
-                }
+                currentToken.append(ESCAPE);
                 currentToken.append(c);
                 escaped = false;
             } else if (c == ESCAPE) {
@@ -51,16 +49,24 @@ public class LineParser {
                     escaped = true;
                 }
             } else if (c == SINGLE && !inDoubleQuotes) {
-                inSingleQuotes = !inSingleQuotes;
+                inSingleQuotes = !inSingleQuotes;  // Toggle single quotes state
+                if (!inSingleQuotes && currentToken.length() > 0) {
+                    result.add(currentToken.toString());
+                    currentToken.setLength(0);
+                }
             } else if (c == DOUBLE && !inSingleQuotes) {
-                inDoubleQuotes = !inDoubleQuotes;
+                inDoubleQuotes = !inDoubleQuotes;  // Toggle double quotes state
+                if (!inDoubleQuotes && currentToken.length() > 0) {
+                    result.add(currentToken.toString());
+                    currentToken.setLength(0);
+                }
             } else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
                 if (currentToken.length() > 0) {
                     result.add(currentToken.toString());
                     currentToken.setLength(0);
                 }
             } else {
-                currentToken.append(c);
+                currentToken.append(c);  // Add non-whitespace character to the current token
             }
             
             index++;
