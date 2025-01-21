@@ -55,28 +55,17 @@ public class Main {
                 String filePaths = input.substring(4).trim();
                 LineParser parser = new LineParser(filePaths);
                 List<String> files = parser.parse();
-                StringBuilder output = new StringBuilder();
-                boolean needsDot = false;
+                List<String> contents = new ArrayList<>();
                 
+                // First collect all non-empty contents
                 for (String filePath : files) {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
-                            // Read file as raw bytes
-                            byte[] content = Files.readAllBytes(file.toPath());
-                            
-                            // Only process if we have content
-                            if (content.length > 0) {
-                                // If we already have content, add a dot before the new content
-                                if (needsDot) {
-                                    output.append(".");
-                                }
-                                
-                                // Append the content directly as a string
-                                output.append(new String(content));
-                                
-                                // Mark that we'll need a dot before the next content
-                                needsDot = true;
+                            byte[] bytes = Files.readAllBytes(file.toPath());
+                            String content = new String(bytes);
+                            if (content.length() > 0) {
+                                contents.add(content);
                             }
                         } catch (IOException e) {
                             System.out.println("cat: " + filePath + ": Error reading file");
@@ -86,10 +75,20 @@ public class Main {
                     }
                 }
                 
+                // Then join them manually with exactly one dot between each content
+                StringBuilder output = new StringBuilder();
+                for (int i = 0; i < contents.size(); i++) {
+                    output.append(contents.get(i));
+                    // Only append a dot if this isn't the last content
+                    if (i < contents.size() - 1) {
+                        output.append('.');
+                    }
+                }
+                
                 System.out.println(output);
                 System.out.print("$ ");
                 continue;
-            }            
+            }       
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
