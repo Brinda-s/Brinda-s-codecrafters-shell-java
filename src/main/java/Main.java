@@ -62,7 +62,7 @@ public class Main {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
-                            String content = new String(Files.readAllBytes(file.toPath()));
+                            String content = new String(Files.readAllBytes(file.toPath())).trim();
                             // Remove trailing dot if present
                             if (content.endsWith(".")) {
                                 content = content.substring(0, content.length() - 1);
@@ -86,15 +86,15 @@ public class Main {
                 }
                 
                 if (!hasError) {
-                    // Add final dot
+                    // Add final dot and print without newline at the end
                     output.append('.');
-                    System.out.println(output);
+                    System.out.print(output.toString().trim());
+                    System.out.println();  // Add a single newline at the end
                 }
                 
                 System.out.print("$ ");
                 continue;
             }
-            
                
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
