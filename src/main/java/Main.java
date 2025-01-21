@@ -36,22 +36,11 @@ public class Main {
             // Use the LineParser for echo and cat commands to handle quotes
             if (input.startsWith("echo ")) {
                 String text = input.substring(5).trim();
-                LineParser parser = new LineParser(text);  // Parse using LineParser
+                LineParser parser = new LineParser(text);
                 List<String> tokens = parser.parse();
-                StringBuilder output = new StringBuilder();
-            
-                boolean firstToken = true;
-                for (String token : tokens) {
-                    if (!firstToken) {
-                        // Add space only if it's not the first token
-                        output.append(" ");
-                    }
-                    output.append(token);
-                    firstToken = false;
-                }
-            
-                // Print the output
-                System.out.println(output.toString());
+                
+                // Print tokens without adding extra spaces
+                System.out.println(String.join(" ", tokens).trim());
                 System.out.print("$ ");
                 continue;
             }
