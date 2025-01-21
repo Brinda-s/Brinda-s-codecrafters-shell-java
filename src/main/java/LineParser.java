@@ -26,18 +26,15 @@ public class LineParser {
 
             if (escaped) {
                 // Handle escape sequences
-                if (inDoubleQuotes) {
-                    if (c == DOUBLE || c == ESCAPE || c == 'n') {
-                        if (c == 'n') {
-                            currentToken.append('\n'); // Translate \n to newline
-                        } else {
-                            currentToken.append(c); // Add escaped double quote or backslash
-                        }
+                if (inDoubleQuotes || inSingleQuotes) {
+                    // Handle valid escapes within quotes
+                    if (c == ESCAPE || c == DOUBLE || c == SINGLE || c == 'n') {
+                        currentToken.append(c == 'n' ? '\n' : c);
                     } else {
-                        currentToken.append(ESCAPE).append(c); // Invalid escape, treat as literal
+                        currentToken.append(ESCAPE).append(c); // Invalid escape
                     }
                 } else {
-                    currentToken.append(c); // Append literal character after escape
+                    currentToken.append(ESCAPE).append(c); // Handle escapes outside quotes
                 }
                 escaped = false;
             } else if (c == ESCAPE) {
@@ -47,23 +44,34 @@ public class LineParser {
             } else if (c == DOUBLE && !inSingleQuotes) {
                 inDoubleQuotes = !inDoubleQuotes; // Toggle double quotes
             } else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
-                // Add token and reset if not in quotes
                 if (currentToken.length() > 0) {
                     result.add(currentToken.toString());
-                    currentToken.setLength(0);
+                    currentToken.setLength(0); // Clear the token
                 }
             } else {
-                currentToken.append(c); // Add regular character
+                currentToken.append(c); // Add character to current token
             }
 
             index++;
         }
 
-        // Add remaining token to the result
+        // Add the remaining token to the result
         if (currentToken.length() > 0) {
             result.add(currentToken.toString());
         }
 
         return result;
+    }
+
+    public static void main(String[] args) {
+        // Example test cases
+        String input1 = "echo \"script'world'\\n'test\"";
+        String input2 = "cat '/tmp/quz/\"f 24\"' '/tmp/quz/\"f\\41\"' '/tmp/quz/f27'";
+        
+        LineParser parser1 = new LineParser(input1);
+        LineParser parser2 = new LineParser(input2);
+
+        System.out.println(parser1.parse());
+        System.out.println(parser2.parse());
     }
 }
