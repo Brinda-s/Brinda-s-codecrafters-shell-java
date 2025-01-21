@@ -66,7 +66,7 @@ public class LineParser {
             index++;
         }
         
-        // Add any remaining token
+        // Handle any remaining token
         if (currentToken.length() > 0) {
             result.add(currentToken.toString());
         }
