@@ -1,65 +1,57 @@
-import java.text.CharacterIterator;
-import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.List;
 
 public class LineParser {
-    public static final char SPACE = ' ';
     public static final char SINGLE = '\'';
     public static final char DOUBLE = '"';
 
-    private final CharacterIterator iterator;
-    private final StringBuilder stringBuilder;
+    private final String input;
+    private int index;
 
     public LineParser(String input) {
-        this.iterator = new StringCharacterIterator(input);
-        this.stringBuilder = new StringBuilder();
+        this.input = input;
+        this.index = 0;
     }
 
     public List<String> parse() {
         List<String> tokens = new ArrayList<>();
-        char character;
+        StringBuilder token = new StringBuilder();
         boolean insideSingleQuotes = false;
         boolean insideDoubleQuotes = false;
 
-        boolean firstToken = true; // Flag to handle leading space for the first token
+        while (index < input.length()) {
+            char currentChar = input.charAt(index);
 
-        while ((character = iterator.next()) != CharacterIterator.DONE) {
-            switch (character) {
-                case SINGLE:
-                    insideSingleQuotes = !insideSingleQuotes;  // Toggle insideSingleQuotes
-                    if (!insideSingleQuotes) {
-                        tokens.add(stringBuilder.toString()); // Add token
-                        stringBuilder.setLength(0);  // Reset for next token
-                    }
-                    break;
-                case DOUBLE:
-                    insideDoubleQuotes = !insideDoubleQuotes;  // Toggle insideDoubleQuotes
-                    if (!insideDoubleQuotes) {
-                        tokens.add(stringBuilder.toString()); // Add token
-                        stringBuilder.setLength(0);  // Reset for next token
-                    }
-                    break;
-                case SPACE:
-                    if (insideSingleQuotes || insideDoubleQuotes) {
-                        stringBuilder.append(SPACE);  // Inside quotes, space is part of the token
-                    } else {
-                        // Outside quotes, space should separate tokens but avoid leading/trailing space
-                        if (stringBuilder.length() > 0 && !firstToken) {
-                            tokens.add(stringBuilder.toString()); // Add token
-                            stringBuilder.setLength(0);  // Reset for next token
-                        }
-                    }
-                    firstToken = false;  // After first space, no longer treat it as leading space
-                    break;
-                default:
-                    stringBuilder.append(character);  // Add non-space character to the current token
+            // Handle different states based on quote characters
+            if (currentChar == SINGLE) {
+                if (insideSingleQuotes) {
+                    tokens.add(token.toString());  // Add current token
+                    token.setLength(0);  // Reset for next token
+                }
+                insideSingleQuotes = !insideSingleQuotes;  // Toggle single quote state
+            } else if (currentChar == DOUBLE) {
+                if (insideDoubleQuotes) {
+                    tokens.add(token.toString());  // Add current token
+                    token.setLength(0);  // Reset for next token
+                }
+                insideDoubleQuotes = !insideDoubleQuotes;  // Toggle double quote state
+            } else if (Character.isWhitespace(currentChar)) {
+                if (!insideSingleQuotes && !insideDoubleQuotes && token.length() > 0) {
+                    tokens.add(token.toString());  // Add token for spaces outside quotes
+                    token.setLength(0);  // Reset for next token
+                } else {
+                    token.append(currentChar);  // Inside quotes, keep spaces as part of the token
+                }
+            } else {
+                token.append(currentChar);  // Add non-whitespace characters to the current token
             }
+
+            index++;
         }
 
-        // Add the last token if any
-        if (stringBuilder.length() > 0) {
-            tokens.add(stringBuilder.toString());
+        // Add the last token if it exists
+        if (token.length() > 0) {
+            tokens.add(token.toString());
         }
 
         return tokens;
