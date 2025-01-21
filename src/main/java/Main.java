@@ -52,47 +52,44 @@ public class Main {
             }
 
             if (input.startsWith("cat ")) {
-                    String filePaths = input.substring(4).trim();
-                    LineParser parser = new LineParser(filePaths);
-                    List<String> files = parser.parse();
-                    List<String> nonEmptyContents = new ArrayList<>();
-                    
-                    for (String filePath : files) {
-                        File file = new File(filePath);
-                        if (file.exists() && file.isFile()) {
-                            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                                StringBuilder content = new StringBuilder();
-                                int c;
-                                while ((c = reader.read()) != -1) {
-                                    content.append((char) c);
+                String filePaths = input.substring(4).trim();
+                LineParser parser = new LineParser(filePaths);
+                List<String> files = parser.parse();
+                StringBuilder output = new StringBuilder();
+                boolean needsDot = false;
+                
+                for (String filePath : files) {
+                    File file = new File(filePath);
+                    if (file.exists() && file.isFile()) {
+                        try {
+                            // Read file as raw bytes
+                            byte[] content = Files.readAllBytes(file.toPath());
+                            
+                            // Only process if we have content
+                            if (content.length > 0) {
+                                // If we already have content, add a dot before the new content
+                                if (needsDot) {
+                                    output.append(".");
                                 }
-                                String fileContent = content.toString();
-                                if (!fileContent.isEmpty()) {
-                                    nonEmptyContents.add(fileContent);
-                                }
-                            } catch (IOException e) {
-                                System.out.println("cat: " + filePath + ": Error reading file");
+                                
+                                // Append the content directly as a string
+                                output.append(new String(content));
+                                
+                                // Mark that we'll need a dot before the next content
+                                needsDot = true;
                             }
-                        } else {
-                            System.out.println("cat: " + filePath + ": No such file or directory");
+                        } catch (IOException e) {
+                            System.out.println("cat: " + filePath + ": Error reading file");
                         }
+                    } else {
+                        System.out.println("cat: " + filePath + ": No such file or directory");
                     }
-                    
-                    // Join all non-empty contents with a single dot
-                    if (!nonEmptyContents.isEmpty()) {
-                        StringBuilder result = new StringBuilder();
-                        for (int i = 0; i < nonEmptyContents.size(); i++) {
-                            result.append(nonEmptyContents.get(i));
-                            if (i < nonEmptyContents.size() - 1) {
-                                result.append(".");
-                            }
-                        }
-                        System.out.println(result);
-                    }
-                    System.out.print("$ ");
-                    continue;
                 }
-
+                
+                System.out.println(output);
+                System.out.print("$ ");
+                continue;
+            }            
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
