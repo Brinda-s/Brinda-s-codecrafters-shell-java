@@ -66,7 +66,7 @@ public class LineParser {
 
         for (String currentToken : tokens) {
             if (concatenatedToken.length() > 0 && !currentToken.startsWith("\"") && !currentToken.startsWith("\'")) {
-                // Concatenate directly without adding spaces
+                // Concatenate directly without adding spaces between quoted strings
                 concatenatedToken.append(currentToken);
             } else {
                 if (concatenatedToken.length() > 0) {
