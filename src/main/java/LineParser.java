@@ -25,28 +25,16 @@ public class LineParser {
             char c = input.charAt(index);
             
             if (escaped) {
-                // When escaped, always append both the backslash and the character
-                currentToken.append(ESCAPE);
-                currentToken.append(c);
+                currentToken.append(ESCAPE);  // Preserve the backslash as a literal
+                currentToken.append(c);  // Add the escaped character
                 escaped = false;
             } else if (c == ESCAPE) {
-                if (inSingleQuotes) {
-                    // In single quotes, treat backslash as literal
-                    currentToken.append(c);
-                } else if (inDoubleQuotes) {
-                    // In double quotes, preserve backslash for file paths
-                    if (index + 1 < input.length()) {
-                        char nextChar = input.charAt(index + 1);
-                        if (nextChar == SINGLE || nextChar == DOUBLE || nextChar == ESCAPE) {
-                            escaped = true;
-                        } else {
-                            currentToken.append(c);
-                        }
-                    } else {
-                        currentToken.append(c);
-                    }
+                // Handle the escape behavior outside of quotes
+                if (!inSingleQuotes && !inDoubleQuotes) {
+                    // Treat backslash as a space outside of quotes
+                    currentToken.append(' '); // Add a space instead of the backslash
                 } else {
-                    escaped = true;
+                    escaped = true;  // Escape the next character
                 }
             } else if (c == SINGLE && !inDoubleQuotes) {
                 inSingleQuotes = !inSingleQuotes;  // Toggle single quotes state
