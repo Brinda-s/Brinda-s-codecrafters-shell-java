@@ -105,11 +105,18 @@ public class LineParser {
 
     private void redirectToFile(List<String> commandArgs, String filePath) {
         try {
-            // Create the file if it doesn't exist
+            // Get the parent directory of the file
             File file = new File(filePath);
-            file.getParentFile().mkdirs();  // Create any necessary directories
+            File parentDir = file.getParentFile();
+    
+            // Create the directory structure if it doesn't exist
+            if (parentDir != null && !parentDir.exists()) {
+                parentDir.mkdirs();
+            }
+    
+            // Create the file if it doesn't exist
             file.createNewFile();
-
+    
             // Write the command output to the file
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
                 for (String token : commandArgs) {
@@ -121,4 +128,5 @@ public class LineParser {
             e.printStackTrace();
         }
     }
+    
 }
