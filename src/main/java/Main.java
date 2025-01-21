@@ -38,6 +38,7 @@ public class Main {
             CommandLine cmdLine = parser.parse();
             List<String> tokens = cmdLine.getTokens();
             String outputFile = cmdLine.getOutputFile();
+            String errorFile = cmdLine.getErrorFile();
             
             if (tokens.isEmpty()) {
                 System.out.print("$ ");
@@ -48,12 +49,17 @@ public class Main {
             ProcessBuilder pb = null;
             boolean isBuiltin = builtins.contains(command);
             
-            // Setup output redirection if specified
+            // Setup output and error redirection if specified
             if (outputFile != null) {
                 File output = new File(outputFile);
-                // Ensure parent directories exist
                 if (output.getParentFile() != null) {
                     output.getParentFile().mkdirs();
+                }
+            }
+            if (errorFile != null) {
+                File error = new File(errorFile);
+                if (error.getParentFile() != null) {
+                    error.getParentFile().mkdirs();
                 }
             }
 
@@ -61,9 +67,13 @@ public class Main {
             if (isBuiltin) {
                 // Capture builtin output if redirection is specified
                 PrintStream originalOut = System.out;
+                PrintStream originalErr = System.err;
                 try {
                     if (outputFile != null) {
                         System.setOut(new PrintStream(new FileOutputStream(outputFile)));
+                    }
+                    if (errorFile != null) {
+                        System.setErr(new PrintStream(new FileOutputStream(errorFile)));
                     }
 
                     if (command.equals("echo")) {
@@ -81,7 +91,7 @@ public class Main {
                             if (targetDirectory.startsWith("~")) {
                                 String homeDirectory = System.getenv("HOME");
                                 if (homeDirectory == null) {
-                                    System.out.println("cd: Home not set");
+                                    System.err.println("cd: Home not set");
                                     System.out.print("$ ");
                                     continue;
                                 }
@@ -96,7 +106,7 @@ public class Main {
                             if (newDir.exists() && newDir.isDirectory()) {
                                 currentDirectory = newDir.getCanonicalPath();
                             } else {
-                                System.out.println("cd: " + targetDirectory + ": No such file or directory");
+                                System.err.println("cd: " + targetDirectory + ": No such file or directory");
                             }
                         }
                     } else if (command.equals("type")) {
@@ -105,7 +115,6 @@ public class Main {
                             if (builtins.contains(typeCommand)) {
                                 System.out.println(typeCommand + " is a shell builtin");
                             } else {
-                                // Check if the command exists in the system's PATH
                                 String path = System.getenv("PATH");
                                 boolean found = false;
                                 if (path != null) {
@@ -131,6 +140,10 @@ public class Main {
                         System.out.flush();
                         System.setOut(originalOut);
                     }
+                    if (errorFile != null) {
+                        System.err.flush();
+                        System.setErr(originalErr);
+                    }
                 }
             } else {
                 // Handle external commands
@@ -151,22 +164,32 @@ public class Main {
                                 } else {
                                     pb.inheritIO();
                                 }
-                                // Always inherit error stream
-                                pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                                
+                                if (errorFile != null) {
+                                    pb.redirectError(new File(errorFile));
+                                } else {
+                                    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                                }
                                 
                                 Process process = pb.start();
                                 process.waitFor();
                                 executed = true;
                                 break;
                             } catch (IOException | InterruptedException e) {
-                                System.out.println("Error executing command: " + e.getMessage());
+                                System.err.println("Error executing command: " + e.getMessage());
                             }
                         }
                     }
                 }
 
                 if (!executed) {
-                    System.out.println(command + ": command not found");
+                    if (errorFile != null) {
+                        try (PrintStream err = new PrintStream(new FileOutputStream(errorFile))) {
+                            err.println(command + ": command not found");
+                        }
+                    } else {
+                        System.err.println(command + ": command not found");
+                    }
                 }
             }
 
