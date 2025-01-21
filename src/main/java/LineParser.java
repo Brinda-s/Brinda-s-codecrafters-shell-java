@@ -57,6 +57,65 @@ public class LineParser {
             tokens.add(token.toString());
         }
 
-        return tokens;
+        // Now handle the concatenation of quoted tokens
+        List<String> finalTokens = new ArrayList<>();
+        StringBuilder concatenatedToken = new StringBuilder();
+
+        for (String currentToken : tokens) {
+            if (concatenatedToken.length() > 0 && (currentToken.startsWith("\"") || currentToken.startsWith("\'"))) {
+                // Concatenate quoted tokens directly, no space in between
+                concatenatedToken.append(currentToken);
+            } else {
+                // Add current token to final tokens list
+                if (concatenatedToken.length() > 0) {
+                    finalTokens.add(concatenatedToken.toString());
+                }
+                concatenatedToken.setLength(0);  // Reset for next token
+                concatenatedToken.append(currentToken);  // Start new token
+            }
+        }
+
+        // Add the last concatenated token
+        if (concatenatedToken.length() > 0) {
+            finalTokens.add(concatenatedToken.toString());
+        }
+
+        // **Fix**: Ensure no spaces between quoted tokens and spaces only between non-quoted tokens
+        List<String> finalResult = new ArrayList<>();
+        StringBuilder resultToken = new StringBuilder(); // Renamed to `resultToken`
+        boolean lastWasQuoted = false;
+
+        for (String currentToken : finalTokens) {
+            if (currentToken.startsWith("\"") || currentToken.startsWith("\'")) {
+                // If it's a quoted token, append it directly to resultToken
+                if (lastWasQuoted) {
+                    resultToken.append(currentToken);  // Concatenate without space
+                } else {
+                    if (resultToken.length() > 0) {
+                        finalResult.add(resultToken.toString());  // Add previous token
+                    }
+                    resultToken.setLength(0);  // Reset for next token
+                    resultToken.append(currentToken);
+                }
+                lastWasQuoted = true;
+            } else {
+                if (lastWasQuoted && resultToken.length() > 0) {
+                    finalResult.add(resultToken.toString());  // Add quoted token
+                    resultToken.setLength(0);  // Reset
+                }
+                lastWasQuoted = false;
+                // Only add a space when transitioning between non-quoted tokens
+                if (resultToken.length() > 0 && !currentToken.startsWith("\"") && !currentToken.startsWith("\'")) {
+                    resultToken.append(" ");  // Add a space between non-quoted tokens
+                }
+                resultToken.append(currentToken);  // For non-quoted tokens, keep adding
+            }
+        }
+
+        if (resultToken.length() > 0) {
+            finalResult.add(resultToken.toString());  // Add any remaining token
+        }
+
+        return finalResult;
     }
 }
