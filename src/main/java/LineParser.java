@@ -28,9 +28,9 @@ public class LineParser {
                 // Handle escape sequences inside quotes
                 if (c == ESCAPE || c == '"' || c == '\\' || c == 'n') {
                     if (c == 'n') {
-                        currentToken.append('\n');
+                        currentToken.append('\n'); // Handle newline escape
                     } else {
-                        currentToken.append(c);
+                        currentToken.append(c); // Handle other escape sequences
                     }
                 } else {
                     // Invalid escape sequence
