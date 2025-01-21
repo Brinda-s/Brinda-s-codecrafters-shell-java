@@ -24,27 +24,22 @@ public class LineParser {
         while (index < input.length()) {
             char c = input.charAt(index);
 
+            // Handle escape sequence
             if (escaped) {
-                // Handle escape sequences inside double quotes
-                if (c == ESCAPE || c == '"' || c == '\\' || c == 'n') {
-                    if (c == 'n') {
-                        currentToken.append('\n'); // Handle newline escape
-                    } else {
-                        currentToken.append(c); // Handle other escape sequences
-                    }
+                if (c == 'n') {
+                    currentToken.append('\n'); // Handle newline escape sequence
                 } else {
-                    // Invalid escape sequence
-                    currentToken.append(ESCAPE).append(c);
+                    currentToken.append(c); // Handle other escape sequences (\\, \", etc.)
                 }
                 escaped = false;
             } else if (c == ESCAPE) {
-                // Handle start of escape sequence inside double quotes
+                // Set escape flag to process escape sequences
                 escaped = true;
             } else if (c == SINGLE && !inDoubleQuotes) {
-                // Toggle single quote only when not inside double quotes
+                // Toggle single quotes only when not inside double quotes
                 inSingleQuotes = !inSingleQuotes;
             } else if (c == DOUBLE && !inSingleQuotes) {
-                // Toggle double quote only when not inside single quotes
+                // Toggle double quotes only when not inside single quotes
                 inDoubleQuotes = !inDoubleQuotes;
             } else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
                 // Add token if not in quotes and whitespace encountered
@@ -53,14 +48,9 @@ public class LineParser {
                     currentToken.setLength(0);
                 }
             } else {
-                // Handle inside single quotes - treat backslashes literally
+                // If inside single quotes, treat backslashes literally
                 if (inSingleQuotes) {
-                    // Just append the backslash as a literal backslash inside single quotes
-                    if (c == ESCAPE) {
-                        currentToken.append(ESCAPE);
-                    } else {
-                        currentToken.append(c);
-                    }
+                    currentToken.append(c);
                 } else {
                     currentToken.append(c);
                 }
@@ -77,3 +67,4 @@ public class LineParser {
         return result;
     }
 }
+
