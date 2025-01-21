@@ -54,41 +54,41 @@ public class Main {
                 String filePaths = input.substring(4).trim();
                 LineParser parser = new LineParser(filePaths);
                 List<String> files = parser.parse();
+                StringBuilder output = new StringBuilder();
                 boolean hasError = false;
-                List<String> allContents = new ArrayList<>();
-            
-                // First validate all files exist
-                for (String filePath : files) {
+                
+                for (int i = 0; i < files.size(); i++) {
+                    String filePath = files.get(i);
                     File file = new File(filePath);
-                    if (!file.exists() || !file.isFile()) {
-                        System.out.println("cat: " + filePath + ": No such file or directory");
-                        hasError = true;
-                        break;
-                    }
-                }
-            
-                // If all files exist, read their contents
-                if (!hasError) {
-                    for (String filePath : files) {
-                        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-                            StringBuilder fileContent = new StringBuilder();
-                            int c;
-                            while ((c = reader.read()) != -1) {
-                                fileContent.append((char) c);
+                    if (file.exists() && file.isFile()) {
+                        try {
+                            String content = new String(Files.readAllBytes(file.toPath()));
+                            // Remove trailing dot if present
+                            if (content.endsWith(".")) {
+                                content = content.substring(0, content.length() - 1);
                             }
-                            allContents.add(fileContent.toString());
+                            output.append(content);
+                            
+                            // Add dot if not the last file
+                            if (i < files.size() - 1) {
+                                output.append('.');
+                            }
                         } catch (IOException e) {
                             System.out.println("cat: " + filePath + ": Error reading file");
                             hasError = true;
                             break;
                         }
+                    } else {
+                        System.out.println("cat: " + filePath + ": No such file or directory");
+                        hasError = true;
+                        break;
                     }
                 }
-            
-                // Only output if no errors occurred
+                
                 if (!hasError) {
-                    String result = String.join(".", allContents);
-                    System.out.println(result);
+                    // Add final dot
+                    output.append('.');
+                    System.out.println(output);
                 }
                 
                 System.out.print("$ ");
