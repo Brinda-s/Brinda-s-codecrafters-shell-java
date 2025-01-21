@@ -65,7 +65,7 @@ public class Main {
                     if (outputFile != null) {
                         System.setOut(new PrintStream(new FileOutputStream(outputFile)));
                     }
-                    
+
                     if (command.equals("echo")) {
                         StringBuilder output = new StringBuilder();
                         for (int i = 1; i < tokens.size(); i++) {
@@ -97,6 +97,32 @@ public class Main {
                                 currentDirectory = newDir.getCanonicalPath();
                             } else {
                                 System.out.println("cd: " + targetDirectory + ": No such file or directory");
+                            }
+                        }
+                    } else if (command.equals("type")) {
+                        // Handle the `type` command
+                        if (tokens.size() > 1) {
+                            String typeCommand = tokens.get(1);
+                            if (builtins.contains(typeCommand)) {
+                                System.out.println(typeCommand + " is a shell builtin");
+                            } else {
+                                // Check if the command exists in the system's PATH
+                                String path = System.getenv("PATH");
+                                boolean found = false;
+                                if (path != null) {
+                                    String[] directories = path.split(":");
+                                    for (String dir : directories) {
+                                        File file = new File(dir, typeCommand);
+                                        if (file.exists() && file.canExecute()) {
+                                            System.out.println(typeCommand + " is " + file.getAbsolutePath());
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!found) {
+                                    System.out.println(typeCommand + ": command not found");
+                                }
                             }
                         }
                     }
