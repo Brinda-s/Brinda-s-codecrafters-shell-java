@@ -1,6 +1,9 @@
+
 import java.util.Scanner;
 import java.util.Set;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -36,61 +39,64 @@ public class Main {
             // Use the LineParser for echo and cat commands to handle quotes
             if (input.startsWith("echo ")) {
                 String text = input.substring(5).trim();
-                LineParser parser = new LineParser(text);  // Parse using LineParser
-                List<String> tokens = parser.parse();
+                LineParser parser = new LineParser(text);
                 StringBuilder output = new StringBuilder();
-            
-                boolean firstToken = true;
-                for (String token : tokens) {
-                    if (!firstToken) {
-                        // Add space only if it's not the first token
-                        output.append(" ");
-                    }
-                    output.append(token);
-                    firstToken = false;
+                
+                for (String token : parser.parse()) {
+                    output.append(output.length() > 0 ? " " : "")
+                          .append(token);
                 }
-            
-                // Print the output
+                
                 System.out.println(output.toString());
                 System.out.print("$ ");
                 continue;
             }
-
             if (input.startsWith("cat ")) {
                 String filePaths = input.substring(4).trim();
-                LineParser parser = new LineParser(filePaths);  // Parse file paths with quotes
+                LineParser parser = new LineParser(filePaths);
                 List<String> files = parser.parse();
+                StringBuilder output = new StringBuilder();
+                boolean hasError = false;
                 
-                // Read and concatenate file contents
-                StringBuilder finalOutput = new StringBuilder();
-                boolean isFirstFile = true; // Flag to check if it's the first file
-                
-                for (String filePath : files) {
+                for (int i = 0; i < files.size(); i++) {
+                    String filePath = files.get(i);
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
-                            String content = String.join("", Files.readAllLines(file.toPath())).trim();
-                            if (!content.isEmpty()) {
-                                if (!isFirstFile) {
-                                    finalOutput.append("."); // Append dot only after the first file's content
-                                }
-                                finalOutput.append(content);
-                                isFirstFile = false; // Set flag to false after the first valid content
+                            String content = new String(Files.readAllBytes(file.toPath())).trim();
+                            // Remove trailing dot if present
+                            if (content.endsWith(".")) {
+                                content = content.substring(0, content.length() - 1);
+                            }
+                            output.append(content);
+                            
+                            // Add dot if not the last file
+                            if (i < files.size() - 1) {
+                                output.append('.');
                             }
                         } catch (IOException e) {
                             System.out.println("cat: " + filePath + ": Error reading file");
+                            hasError = true;
+                            break;
                         }
                     } else {
                         System.out.println("cat: " + filePath + ": No such file or directory");
+                        hasError = true;
+                        break;
                     }
                 }
-
-                // Print the concatenated content
-                System.out.println(finalOutput.toString());
+                
+                if (!hasError) {
+                    // Add final dot and print without newline at the end
+                    output.append('.');
+                    System.out.print(output.toString().trim());
+                    System.out.println();  // Add a single newline at the end
+                }
+                
                 System.out.print("$ ");
                 continue;
             }
-        
+               
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
@@ -199,4 +205,5 @@ public class Main {
             System.out.print("$ ");
         }
     }
+
 }
