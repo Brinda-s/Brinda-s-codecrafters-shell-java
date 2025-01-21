@@ -1,6 +1,8 @@
 import java.util.Scanner;
 import java.util.Set;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -50,34 +52,47 @@ public class Main {
             }
 
             if (input.startsWith("cat ")) {
-                String filePaths = input.substring(4).trim();
-                LineParser parser = new LineParser(filePaths);
-                List<String> files = parser.parse();
-                List<String> nonEmptyContents = new ArrayList<>();
-                
-                for (String filePath : files) {
-                    File file = new File(filePath);
-                    if (file.exists() && file.isFile()) {
-                        try {
-                            // Read the entire file as a single byte array and convert to string
-                            byte[] bytes = Files.readAllBytes(file.toPath());
-                            String content = new String(bytes);
-                            if (!content.isEmpty()) {
-                                nonEmptyContents.add(content);
+                    String filePaths = input.substring(4).trim();
+                    LineParser parser = new LineParser(filePaths);
+                    List<String> files = parser.parse();
+                    List<String> nonEmptyContents = new ArrayList<>();
+                    
+                    for (String filePath : files) {
+                        File file = new File(filePath);
+                        if (file.exists() && file.isFile()) {
+                            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                                StringBuilder content = new StringBuilder();
+                                int c;
+                                while ((c = reader.read()) != -1) {
+                                    content.append((char) c);
+                                }
+                                String fileContent = content.toString();
+                                if (!fileContent.isEmpty()) {
+                                    nonEmptyContents.add(fileContent);
+                                }
+                            } catch (IOException e) {
+                                System.out.println("cat: " + filePath + ": Error reading file");
                             }
-                        } catch (IOException e) {
-                            System.out.println("cat: " + filePath + ": Error reading file");
+                        } else {
+                            System.out.println("cat: " + filePath + ": No such file or directory");
                         }
-                    } else {
-                        System.out.println("cat: " + filePath + ": No such file or directory");
                     }
+                    
+                    // Join all non-empty contents with a single dot
+                    if (!nonEmptyContents.isEmpty()) {
+                        StringBuilder result = new StringBuilder();
+                        for (int i = 0; i < nonEmptyContents.size(); i++) {
+                            result.append(nonEmptyContents.get(i));
+                            if (i < nonEmptyContents.size() - 1) {
+                                result.append(".");
+                            }
+                        }
+                        System.out.println(result);
+                    }
+                    System.out.print("$ ");
+                    continue;
                 }
-                
-                // Join non-empty contents with single dots
-                System.out.println(String.join(".", nonEmptyContents));
-                System.out.print("$ ");
-                continue;
-            }
+
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
