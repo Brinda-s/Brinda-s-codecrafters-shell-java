@@ -55,20 +55,19 @@ public class Main {
                 List<String> files = parser.parse();
                 
                 StringBuilder finalOutput = new StringBuilder();
-                boolean firstContent = true;  // Track if we've added any content yet
                 
-                for (String filePath : files) {
+                for (int i = 0; i < files.size(); i++) {
+                    String filePath = files.get(i);
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
                             String content = String.join("", Files.readAllLines(file.toPath()));
                             if (!content.isEmpty()) {
-                                if (!firstContent) {
-                                    // Only add dot if this isn't the first content we're adding
+                                if (finalOutput.length() > 0) {
+                                    // Only add dot if we already have content and current content is non-empty
                                     finalOutput.append(".");
                                 }
                                 finalOutput.append(content);
-                                firstContent = false;  // We've now added content
                             }
                         } catch (IOException e) {
                             System.out.println("cat: " + filePath + ": Error reading file");
@@ -82,7 +81,6 @@ public class Main {
                 System.out.print("$ ");
                 continue;
             }
-        
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
