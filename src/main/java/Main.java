@@ -100,7 +100,6 @@ public class Main {
                             }
                         }
                     } else if (command.equals("type")) {
-                        // Handle the `type` command
                         if (tokens.size() > 1) {
                             String typeCommand = tokens.get(1);
                             if (builtins.contains(typeCommand)) {
@@ -121,12 +120,11 @@ public class Main {
                                     }
                                 }
                                 if (!found) {
-                                    System.out.println(typeCommand + ": command not found");
+                                    System.out.println(typeCommand + ": not found");
                                 }
                             }
                         }
                     }
-                    // Other builtins can be added here
 
                 } finally {
                     if (outputFile != null) {
