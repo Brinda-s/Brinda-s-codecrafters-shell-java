@@ -22,8 +22,7 @@ public class LineParser {
         boolean insideSingleQuotes = false;
         boolean insideDoubleQuotes = false;
 
-        // To handle concatenating adjacent tokens without extra spaces
-        boolean firstToken = true;
+        boolean firstToken = true; // Flag to handle first token's leading space
 
         while ((character = iterator.next()) != CharacterIterator.DONE) {
             switch (character) {
@@ -42,24 +41,22 @@ public class LineParser {
                     }
                     break;
                 case SPACE:
-                    // Handle space: treat it as part of the token inside quotes or separate tokens outside
                     if (insideSingleQuotes || insideDoubleQuotes) {
-                        stringBuilder.append(SPACE);  // Add space if inside quotes
+                        stringBuilder.append(SPACE);  // Inside quotes, space is part of the token
                     } else {
-                        // If outside quotes and token is not empty, add it and reset
-                        if (stringBuilder.length() > 0 && !firstToken) {
+                        // Outside quotes, space is used to separate tokens
+                        if (stringBuilder.length() > 0) {
                             tokens.add(stringBuilder.toString()); // Add token
                             stringBuilder.setLength(0);  // Reset for next token
                         }
                     }
-                    firstToken = false;  // After first space, no longer treat it as leading space
                     break;
                 default:
                     stringBuilder.append(character);  // Add non-space character to the current token
             }
         }
 
-        // Add last token if any
+        // Add the last token if any
         if (stringBuilder.length() > 0) {
             tokens.add(stringBuilder.toString());
         }
