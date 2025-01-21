@@ -25,28 +25,42 @@ public class LineParser {
             char c = input.charAt(index);
             
             if (escaped) {
-                currentToken.append(ESCAPE);  // Preserve the backslash as a literal
-                currentToken.append(c);  // Add the escaped character
+                // When escaped, always append both the backslash and the character
+                if (inDoubleQuotes || inSingleQuotes) {
+                    currentToken.append(ESCAPE);
+                }
+                currentToken.append(c);
                 escaped = false;
             } else if (c == ESCAPE) {
-                // Handle the escape behavior outside of quotes
-                if (!inSingleQuotes && !inDoubleQuotes) {
-                    // Treat backslash as a space outside of quotes
-                    currentToken.append(' '); // Add a space instead of the backslash
+                if (inSingleQuotes) {
+                    // In single quotes, treat backslash as literal
+                    currentToken.append(c);
+                } else if (inDoubleQuotes) {
+                    // In double quotes, preserve backslash for file paths
+                    if (index + 1 < input.length()) {
+                        char nextChar = input.charAt(index + 1);
+                        if (nextChar == SINGLE || nextChar == DOUBLE || nextChar == ESCAPE) {
+                            escaped = true;
+                        } else {
+                            currentToken.append(c);
+                        }
+                    } else {
+                        currentToken.append(c);
+                    }
                 } else {
-                    escaped = true;  // Escape the next character
+                    escaped = true;
                 }
             } else if (c == SINGLE && !inDoubleQuotes) {
-                inSingleQuotes = !inSingleQuotes;  // Toggle single quotes state
+                inSingleQuotes = !inSingleQuotes;
             } else if (c == DOUBLE && !inSingleQuotes) {
-                inDoubleQuotes = !inDoubleQuotes;  // Toggle double quotes state
+                inDoubleQuotes = !inDoubleQuotes;
             } else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
                 if (currentToken.length() > 0) {
                     result.add(currentToken.toString());
                     currentToken.setLength(0);
                 }
             } else {
-                currentToken.append(c);  // Add non-whitespace character to the current token
+                currentToken.append(c);
             }
             
             index++;
