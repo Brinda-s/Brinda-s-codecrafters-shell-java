@@ -19,8 +19,6 @@ public class LineParser {
         boolean insideSingleQuotes = false;
         boolean insideDoubleQuotes = false;
 
-        boolean firstToken = true; // Flag to handle first token's leading space
-
         while (index < input.length()) {
             char currentChar = input.charAt(index);
 
@@ -47,7 +45,6 @@ public class LineParser {
                         token.setLength(0);  // Reset for next token
                     }
                 }
-                firstToken = false;  // After first space, no longer treat it as leading space
             } else {
                 token.append(currentChar);  // Add non-whitespace character to the current token
             }
@@ -60,13 +57,13 @@ public class LineParser {
             tokens.add(token.toString());
         }
 
-        // Now, ensure no extra spaces between quoted strings
+        // Now handle the concatenation of quoted tokens
         List<String> finalTokens = new ArrayList<>();
         StringBuilder concatenatedToken = new StringBuilder();
-
+        
         for (String currentToken : tokens) {
-            if (concatenatedToken.length() > 0 && !currentToken.startsWith("\"") && !currentToken.startsWith("\'")) {
-                // Concatenate directly without adding spaces between quoted strings
+            if (concatenatedToken.length() > 0 && (currentToken.startsWith("\"") || currentToken.startsWith("\'"))) {
+                // Concatenate quoted tokens directly, no space in between
                 concatenatedToken.append(currentToken);
             } else {
                 if (concatenatedToken.length() > 0) {
