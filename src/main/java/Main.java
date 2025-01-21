@@ -59,7 +59,9 @@ public class Main {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
-                            String content = String.join("", Files.readAllLines(file.toPath()));
+                            // Read the entire file as a single byte array and convert to string
+                            byte[] bytes = Files.readAllBytes(file.toPath());
+                            String content = new String(bytes);
                             if (!content.isEmpty()) {
                                 nonEmptyContents.add(content);
                             }
@@ -71,12 +73,11 @@ public class Main {
                     }
                 }
                 
-                // Use String.join to ensure exactly one dot between contents
+                // Join non-empty contents with single dots
                 System.out.println(String.join(".", nonEmptyContents));
                 System.out.print("$ ");
                 continue;
             }
-
             if (input.startsWith("type ")) {
                 String[] parts = input.split(" ", 2);
                 if (parts.length > 1) {
