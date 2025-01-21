@@ -38,9 +38,23 @@ public class Main {
                 String text = input.substring(5).trim();
                 LineParser parser = new LineParser(text);
                 List<String> tokens = parser.parse();
+                StringBuilder output = new StringBuilder();
                 
-                // Print tokens without adding extra spaces
-                System.out.println(String.join(" ", tokens).trim());
+                for (int i = 0; i < tokens.size(); i++) {
+                    String token = tokens.get(i);
+                    // Remove surrounding quotes if present
+                    if ((token.startsWith("\"") && token.endsWith("\"")) || 
+                        (token.startsWith("\'") && token.endsWith("\'"))) {
+                        token = token.substring(1, token.length() - 1);
+                    }
+                    output.append(token);
+                    // Only add space if not the last token and next token isn't concatenated
+                    if (i < tokens.size() - 1) {
+                        output.append(" ");
+                    }
+                }
+                
+                System.out.println(output.toString());
                 System.out.print("$ ");
                 continue;
             }

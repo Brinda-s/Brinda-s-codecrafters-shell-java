@@ -18,38 +18,31 @@ public class LineParser {
         StringBuilder token = new StringBuilder();
         boolean insideSingleQuotes = false;
         boolean insideDoubleQuotes = false;
-        boolean wasQuoted = false;
 
         while (index < input.length()) {
             char currentChar = input.charAt(index);
 
-            if (currentChar == SINGLE) {
+            if (currentChar == SINGLE && !insideDoubleQuotes) {
+                if (insideSingleQuotes) {
+                    tokens.add(token.toString());
+                    token.setLength(0);
+                }
                 insideSingleQuotes = !insideSingleQuotes;
-                if (!insideSingleQuotes && token.length() > 0) {
-                    // Only add token if we're exiting quotes and have content
+            } else if (currentChar == DOUBLE && !insideSingleQuotes) {
+                if (insideDoubleQuotes) {
                     tokens.add(token.toString());
                     token.setLength(0);
-                    wasQuoted = true;
                 }
-            } else if (currentChar == DOUBLE) {
                 insideDoubleQuotes = !insideDoubleQuotes;
-                if (!insideDoubleQuotes && token.length() > 0) {
-                    // Only add token if we're exiting quotes and have content
+            } else if (Character.isWhitespace(currentChar) && !insideSingleQuotes && !insideDoubleQuotes) {
+                if (token.length() > 0) {
                     tokens.add(token.toString());
                     token.setLength(0);
-                    wasQuoted = true;
-                }
-            } else if (Character.isWhitespace(currentChar)) {
-                if (insideSingleQuotes || insideDoubleQuotes) {
-                    token.append(currentChar);
-                } else if (token.length() > 0) {
-                    tokens.add(token.toString());
-                    token.setLength(0);
-                    wasQuoted = false;
                 }
             } else {
                 token.append(currentChar);
             }
+
             index++;
         }
 
@@ -57,43 +50,32 @@ public class LineParser {
             tokens.add(token.toString());
         }
 
-        // Process tokens to handle concatenation
+        // Now handle concatenation
+        StringBuilder output = new StringBuilder();
         List<String> result = new ArrayList<>();
-        StringBuilder concatenated = new StringBuilder();
-        boolean previousWasQuoted = false;
-
-        for (String t : tokens) {
-            boolean currentIsQuoted = t.startsWith("\"") || t.startsWith("\'");
+        
+        for (int i = 0; i < tokens.size(); i++) {
+            String current = tokens.get(i);
             
-            if (currentIsQuoted && previousWasQuoted) {
-                // If current token is quoted and previous was quoted, concatenate without space
-                concatenated.append(t);
-            } else {
-                if (concatenated.length() > 0) {
-                    // Add previous concatenated content if any
-                    result.add(concatenated.toString());
+            if (output.length() > 0) {
+                // If the current token starts with a quote, concatenate without space
+                if (current.startsWith("\"") || current.startsWith("\'")) {
+                    output.append(current);
+                } else {
+                    // If not quoted, add the previous output and start new
+                    result.add(output.toString());
+                    output = new StringBuilder(current);
                 }
-                concatenated = new StringBuilder(t);
+            } else {
+                output.append(current);
             }
             
-            previousWasQuoted = currentIsQuoted;
-        }
-
-        if (concatenated.length() > 0) {
-            result.add(concatenated.toString());
-        }
-
-        // Final step: remove quotes from output
-        List<String> finalResult = new ArrayList<>();
-        for (String t : result) {
-            if ((t.startsWith("\"") && t.endsWith("\"")) || 
-                (t.startsWith("\'") && t.endsWith("\'"))) {
-                finalResult.add(t.substring(1, t.length() - 1));
-            } else {
-                finalResult.add(t);
+            // Handle the last token
+            if (i == tokens.size() - 1 && output.length() > 0) {
+                result.add(output.toString());
             }
         }
 
-        return finalResult;
+        return result;
     }
 }
