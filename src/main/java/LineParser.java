@@ -4,6 +4,8 @@ import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.List;
 
+
+// LineParser class should handle spaces correctly within quoted strings
 public class LineParser {
     public static final char SPACE = ' ';
     public static final char SINGLE = '\'';
