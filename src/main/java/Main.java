@@ -51,24 +51,24 @@ public class Main {
 
             if (input.startsWith("cat ")) {
                 String filePaths = input.substring(4).trim();
-                LineParser parser = new LineParser(filePaths);  // Parse file paths with quotes
+                LineParser parser = new LineParser(filePaths);
                 List<String> files = parser.parse();
                 
-                // Read and concatenate file contents
                 StringBuilder finalOutput = new StringBuilder();
-                boolean isFirstFile = true; // Flag to check if it's the first file
+                boolean firstContent = true;  // Track if we've added any content yet
                 
                 for (String filePath : files) {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
-                            String content = String.join("", Files.readAllLines(file.toPath())).trim();
+                            String content = String.join("", Files.readAllLines(file.toPath()));
                             if (!content.isEmpty()) {
-                                if (!isFirstFile) {
-                                    finalOutput.append("."); // Append dot only after the first file's content
+                                if (!firstContent) {
+                                    // Only add dot if this isn't the first content we're adding
+                                    finalOutput.append(".");
                                 }
                                 finalOutput.append(content);
-                                isFirstFile = false; // Set flag to false after the first valid content
+                                firstContent = false;  // We've now added content
                             }
                         } catch (IOException e) {
                             System.out.println("cat: " + filePath + ": Error reading file");
@@ -77,9 +77,8 @@ public class Main {
                         System.out.println("cat: " + filePath + ": No such file or directory");
                     }
                 }
-
-                // Print the concatenated content
-                System.out.println(finalOutput.toString());
+                
+                System.out.println(finalOutput);
                 System.out.print("$ ");
                 continue;
             }
