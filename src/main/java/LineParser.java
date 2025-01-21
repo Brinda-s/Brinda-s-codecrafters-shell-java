@@ -38,19 +38,23 @@ public class LineParser {
                 }
                 escaped = false;
             } else if (c == ESCAPE) {
-                escaped = true; // Handle the start of escape sequence
+                // Handle the start of escape sequence
+                escaped = true;
             } else if (c == SINGLE && !inDoubleQuotes) {
-                inSingleQuotes = !inSingleQuotes; // Toggle single quotes
+                // Toggle single quote only when not inside double quotes
+                inSingleQuotes = !inSingleQuotes;
             } else if (c == DOUBLE && !inSingleQuotes) {
-                inDoubleQuotes = !inDoubleQuotes; // Toggle double quotes
+                // Toggle double quote only when not inside single quotes
+                inDoubleQuotes = !inDoubleQuotes;
             } else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
-                // Add token and reset if not in quotes
+                // Add token if not in quotes and whitespace encountered
                 if (currentToken.length() > 0) {
                     result.add(currentToken.toString());
                     currentToken.setLength(0);
                 }
             } else {
-                currentToken.append(c); // Regular character handling
+                // Append character to the current token
+                currentToken.append(c);
             }
 
             index++;
