@@ -54,44 +54,46 @@ public class Main {
                 String filePaths = input.substring(4).trim();
                 LineParser parser = new LineParser(filePaths);
                 List<String> files = parser.parse();
-                StringBuilder output = new StringBuilder();
                 boolean hasError = false;
-                
-                // Process each file
-                for (int i = 0; i < files.size(); i++) {
-                    String filePath = files.get(i);
+                List<String> allContents = new ArrayList<>();
+            
+                // First validate all files exist
+                for (String filePath : files) {
                     File file = new File(filePath);
-                    if (file.exists() && file.isFile()) {
-                        try {
-                            byte[] bytes = Files.readAllBytes(file.toPath());
-                            String content = new String(bytes);
-                            output.append(content);
-                            
-                            // Only add a dot if this isn't the last file
-                            if (i < files.size() - 1) {
-                                output.append('.');
-                            }
-                        } catch (IOException e) {
-                            System.out.println("cat: " + filePath + ": Error reading file");
-                            hasError = true;
-                            break;
-                        }
-                    } else {
+                    if (!file.exists() || !file.isFile()) {
                         System.out.println("cat: " + filePath + ": No such file or directory");
                         hasError = true;
                         break;
                     }
                 }
-                
-                // Only print if no errors occurred
+            
+                // If all files exist, read their contents
                 if (!hasError) {
-                    System.out.println(output);
+                    for (String filePath : files) {
+                        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+                            StringBuilder fileContent = new StringBuilder();
+                            int c;
+                            while ((c = reader.read()) != -1) {
+                                fileContent.append((char) c);
+                            }
+                            allContents.add(fileContent.toString());
+                        } catch (IOException e) {
+                            System.out.println("cat: " + filePath + ": Error reading file");
+                            hasError = true;
+                            break;
+                        }
+                    }
+                }
+            
+                // Only output if no errors occurred
+                if (!hasError) {
+                    String result = String.join(".", allContents);
+                    System.out.println(result);
                 }
                 
                 System.out.print("$ ");
                 continue;
             }
-            
             
                
             if (input.startsWith("type ")) {
