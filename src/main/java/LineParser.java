@@ -14,68 +14,61 @@ public class LineParser {
     }
 
     public List<String> parse() {
-        List<String> tokens = new ArrayList<>();
-        StringBuilder token = new StringBuilder();
-        boolean insideSingleQuotes = false;
-        boolean insideDoubleQuotes = false;
-
+        List<String> result = new ArrayList<>();
+        StringBuilder currentToken = new StringBuilder();
+        boolean inSingleQuotes = false;
+        boolean inDoubleQuotes = false;
+        boolean lastWasQuoted = false;
+        
         while (index < input.length()) {
-            char currentChar = input.charAt(index);
-
-            if (currentChar == SINGLE && !insideDoubleQuotes) {
-                if (insideSingleQuotes) {
-                    tokens.add(token.toString());
-                    token.setLength(0);
+            char c = input.charAt(index);
+            
+            if (c == SINGLE && !inDoubleQuotes) {
+                inSingleQuotes = !inSingleQuotes;
+                if (!inSingleQuotes && lastWasQuoted && index + 1 < input.length() && 
+                    (input.charAt(index + 1) == SINGLE || input.charAt(index + 1) == DOUBLE)) {
+                    // Don't add to result if next char is a quote
+                    lastWasQuoted = true;
+                } else if (!inSingleQuotes) {
+                    if (currentToken.length() > 0) {
+                        result.add(currentToken.toString());
+                        currentToken.setLength(0);
+                    }
+                    lastWasQuoted = false;
                 }
-                insideSingleQuotes = !insideSingleQuotes;
-            } else if (currentChar == DOUBLE && !insideSingleQuotes) {
-                if (insideDoubleQuotes) {
-                    tokens.add(token.toString());
-                    token.setLength(0);
+            } else if (c == DOUBLE && !inSingleQuotes) {
+                inDoubleQuotes = !inDoubleQuotes;
+                if (!inDoubleQuotes && lastWasQuoted && index + 1 < input.length() && 
+                    (input.charAt(index + 1) == SINGLE || input.charAt(index + 1) == DOUBLE)) {
+                    // Don't add to result if next char is a quote
+                    lastWasQuoted = true;
+                } else if (!inDoubleQuotes) {
+                    if (currentToken.length() > 0) {
+                        result.add(currentToken.toString());
+                        currentToken.setLength(0);
+                    }
+                    lastWasQuoted = false;
                 }
-                insideDoubleQuotes = !insideDoubleQuotes;
-            } else if (Character.isWhitespace(currentChar) && !insideSingleQuotes && !insideDoubleQuotes) {
-                if (token.length() > 0) {
-                    tokens.add(token.toString());
-                    token.setLength(0);
+            } else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
+                if (currentToken.length() > 0) {
+                    result.add(currentToken.toString());
+                    currentToken.setLength(0);
                 }
+                lastWasQuoted = false;
             } else {
-                token.append(currentChar);
+                currentToken.append(c);
+                if (inSingleQuotes || inDoubleQuotes) {
+                    lastWasQuoted = true;
+                }
             }
-
+            
             index++;
         }
-
-        if (token.length() > 0) {
-            tokens.add(token.toString());
-        }
-
-        // Now handle concatenation
-        StringBuilder output = new StringBuilder();
-        List<String> result = new ArrayList<>();
         
-        for (int i = 0; i < tokens.size(); i++) {
-            String current = tokens.get(i);
-            
-            if (output.length() > 0) {
-                // If the current token starts with a quote, concatenate without space
-                if (current.startsWith("\"") || current.startsWith("\'")) {
-                    output.append(current);
-                } else {
-                    // If not quoted, add the previous output and start new
-                    result.add(output.toString());
-                    output = new StringBuilder(current);
-                }
-            } else {
-                output.append(current);
-            }
-            
-            // Handle the last token
-            if (i == tokens.size() - 1 && output.length() > 0) {
-                result.add(output.toString());
-            }
+        if (currentToken.length() > 0) {
+            result.add(currentToken.toString());
         }
-
+        
         return result;
     }
 }
