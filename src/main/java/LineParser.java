@@ -63,15 +63,4 @@ public class LineParser {
         return result;
     }
 
-    public static void main(String[] args) {
-        // Example test cases
-        String input1 = "echo \"script'world'\\n'test\"";
-        String input2 = "cat '/tmp/quz/\"f 24\"' '/tmp/quz/\"f\\41\"' '/tmp/quz/f27'";
-        
-        LineParser parser1 = new LineParser(input1);
-        LineParser parser2 = new LineParser(input2);
-
-        System.out.println(parser1.parse());
-        System.out.println(parser2.parse());
-    }
 }
