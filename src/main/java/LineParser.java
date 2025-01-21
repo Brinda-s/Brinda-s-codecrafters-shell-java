@@ -57,65 +57,48 @@ public class LineParser {
             tokens.add(token.toString());
         }
 
-        // Now handle the concatenation of quoted tokens
+        // Now handle concatenating quoted tokens together without spaces
         List<String> finalTokens = new ArrayList<>();
         StringBuilder concatenatedToken = new StringBuilder();
-
-        for (String currentToken : tokens) {
-            if (concatenatedToken.length() > 0 && (currentToken.startsWith("\"") || currentToken.startsWith("\'"))) {
-                // Concatenate quoted tokens directly, no space in between
-                concatenatedToken.append(currentToken);
-            } else {
-                // Add current token to final tokens list
-                if (concatenatedToken.length() > 0) {
-                    finalTokens.add(concatenatedToken.toString());
-                }
-                concatenatedToken.setLength(0);  // Reset for next token
-                concatenatedToken.append(currentToken);  // Start new token
-            }
-        }
-
-        // Add the last concatenated token
-        if (concatenatedToken.length() > 0) {
-            finalTokens.add(concatenatedToken.toString());
-        }
-
-        // **Fix**: Ensure no spaces between quoted tokens and spaces only between non-quoted tokens
-        List<String> finalResult = new ArrayList<>();
-        StringBuilder resultToken = new StringBuilder(); // Renamed to `resultToken`
         boolean lastWasQuoted = false;
 
-        for (String currentToken : finalTokens) {
+        for (String currentToken : tokens) {
             if (currentToken.startsWith("\"") || currentToken.startsWith("\'")) {
-                // If it's a quoted token, append it directly to resultToken
+                // Concatenate quoted tokens directly, no space in between
                 if (lastWasQuoted) {
-                    resultToken.append(currentToken);  // Concatenate without space
+                    concatenatedToken.append(currentToken);
                 } else {
-                    if (resultToken.length() > 0) {
-                        finalResult.add(resultToken.toString());  // Add previous token
+                    if (concatenatedToken.length() > 0) {
+                        finalTokens.add(concatenatedToken.toString());  // Add non-quoted token
                     }
-                    resultToken.setLength(0);  // Reset for next token
-                    resultToken.append(currentToken);
+                    concatenatedToken.setLength(0);  // Reset
+                    concatenatedToken.append(currentToken);
                 }
                 lastWasQuoted = true;
             } else {
-                if (lastWasQuoted && resultToken.length() > 0) {
-                    finalResult.add(resultToken.toString());  // Add quoted token
-                    resultToken.setLength(0);  // Reset
+                // If it's a non-quoted token, add the space between it and any previous token
+                if (lastWasQuoted) {
+                    if (concatenatedToken.length() > 0) {
+                        finalTokens.add(concatenatedToken.toString());
+                    }
+                    concatenatedToken.setLength(0);  // Reset after quoted token
                 }
+
+                if (concatenatedToken.length() > 0) {
+                    finalTokens.add(concatenatedToken.toString());
+                }
+
+                concatenatedToken.setLength(0);
+                concatenatedToken.append(currentToken);  // Start a new token
+
                 lastWasQuoted = false;
-                // Only add a space when transitioning between non-quoted tokens
-                if (resultToken.length() > 0 && !currentToken.startsWith("\"") && !currentToken.startsWith("\'")) {
-                    resultToken.append(" ");  // Add a space between non-quoted tokens
-                }
-                resultToken.append(currentToken);  // For non-quoted tokens, keep adding
             }
         }
 
-        if (resultToken.length() > 0) {
-            finalResult.add(resultToken.toString());  // Add any remaining token
+        if (concatenatedToken.length() > 0) {
+            finalTokens.add(concatenatedToken.toString());  // Add any remaining token
         }
 
-        return finalResult;
+        return finalTokens;
     }
 }
