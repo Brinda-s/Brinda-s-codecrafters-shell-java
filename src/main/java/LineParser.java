@@ -15,7 +15,7 @@ public class LineParser {
 
     public List<String> parse() {
         List<String> tokens = new ArrayList<>();
-        StringBuilder token = new StringBuilder();
+        StringBuilder token = new StringBuilder(); // Renamed from `token` to `resultToken`
         boolean insideSingleQuotes = false;
         boolean insideDoubleQuotes = false;
 
@@ -60,17 +60,18 @@ public class LineParser {
         // Now handle the concatenation of quoted tokens
         List<String> finalTokens = new ArrayList<>();
         StringBuilder concatenatedToken = new StringBuilder();
-        
+
         for (String currentToken : tokens) {
             if (concatenatedToken.length() > 0 && (currentToken.startsWith("\"") || currentToken.startsWith("\'"))) {
                 // Concatenate quoted tokens directly, no space in between
                 concatenatedToken.append(currentToken);
             } else {
+                // Add current token to final tokens list
                 if (concatenatedToken.length() > 0) {
                     finalTokens.add(concatenatedToken.toString());
                 }
                 concatenatedToken.setLength(0);  // Reset for next token
-                concatenatedToken.append(currentToken);
+                concatenatedToken.append(currentToken);  // Start new token
             }
         }
 
@@ -79,6 +80,38 @@ public class LineParser {
             finalTokens.add(concatenatedToken.toString());
         }
 
-        return finalTokens;
+        // **Fix**: Ensure no spaces between quoted tokens
+        List<String> finalResult = new ArrayList<>();
+        StringBuilder resultToken = new StringBuilder(); // Renamed to `resultToken`
+        boolean lastWasQuoted = false;
+
+        for (String currentToken : finalTokens) {
+            if (currentToken.startsWith("\"") || currentToken.startsWith("\'")) {
+                // If it's a quoted token, append it directly to resultToken
+                if (lastWasQuoted) {
+                    resultToken.append(currentToken);  // Concatenate without space
+                } else {
+                    if (resultToken.length() > 0) {
+                        finalResult.add(resultToken.toString());  // Add previous token
+                    }
+                    resultToken.setLength(0);  // Reset for next token
+                    resultToken.append(currentToken);
+                }
+                lastWasQuoted = true;
+            } else {
+                if (lastWasQuoted && resultToken.length() > 0) {
+                    finalResult.add(resultToken.toString());  // Add quoted token
+                    resultToken.setLength(0);  // Reset
+                }
+                lastWasQuoted = false;
+                resultToken.append(currentToken);  // For non-quoted tokens, keep adding
+            }
+        }
+
+        if (resultToken.length() > 0) {
+            finalResult.add(resultToken.toString());  // Add any remaining token
+        }
+
+        return finalResult;
     }
 }
