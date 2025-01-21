@@ -25,7 +25,7 @@ public class LineParser {
             char c = input.charAt(index);
 
             if (escaped) {
-                // Handle escape sequences inside quotes
+                // Handle escape sequences
                 if (c == ESCAPE || c == '"' || c == '\\' || c == 'n') {
                     if (c == 'n') {
                         currentToken.append('\n'); // Handle newline escape
@@ -38,29 +38,29 @@ public class LineParser {
                 }
                 escaped = false;
             } else if (c == ESCAPE) {
-                // Handle the start of escape sequence
+                // Start of escape sequence
                 escaped = true;
             } else if (c == SINGLE && !inDoubleQuotes) {
-                // Toggle single quote only when not inside double quotes
+                // Toggle single quote when not inside double quotes
                 inSingleQuotes = !inSingleQuotes;
             } else if (c == DOUBLE && !inSingleQuotes) {
-                // Toggle double quote only when not inside single quotes
+                // Toggle double quote when not inside single quotes
                 inDoubleQuotes = !inDoubleQuotes;
             } else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
-                // Add token if not in quotes and whitespace encountered
+                // Add token if whitespace outside quotes
                 if (currentToken.length() > 0) {
                     result.add(currentToken.toString());
                     currentToken.setLength(0);
                 }
             } else {
-                // Append character to the current token
+                // Append character to current token
                 currentToken.append(c);
             }
 
             index++;
         }
 
-        // Add remaining token to the result
+        // Add remaining token to result
         if (currentToken.length() > 0) {
             result.add(currentToken.toString());
         }
