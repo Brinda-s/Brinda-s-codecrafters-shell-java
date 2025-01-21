@@ -39,6 +39,7 @@ public class Main {
             List<String> tokens = cmdLine.getTokens();
             String outputFile = cmdLine.getOutputFile();
             String errorFile = cmdLine.getErrorFile();
+            boolean appendOutput = cmdLine.isAppendOutput();
             
             if (tokens.isEmpty()) {
                 System.out.print("$ ");
@@ -70,7 +71,7 @@ public class Main {
                 PrintStream originalErr = System.err;
                 try {
                     if (outputFile != null) {
-                        System.setOut(new PrintStream(new FileOutputStream(outputFile)));
+                        System.setOut(new PrintStream(new FileOutputStream(outputFile, appendOutput)));
                     }
                     if (errorFile != null) {
                         System.setErr(new PrintStream(new FileOutputStream(errorFile)));
@@ -160,7 +161,11 @@ public class Main {
                                 pb.directory(new File(currentDirectory));
                                 
                                 if (outputFile != null) {
-                                    pb.redirectOutput(new File(outputFile));
+                                    if (appendOutput) {
+                                        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(outputFile)));
+                                    } else {
+                                        pb.redirectOutput(new File(outputFile));
+                                    }
                                 } else {
                                     pb.inheritIO();
                                 }

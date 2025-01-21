@@ -18,6 +18,7 @@ class LineParser {
         List<String> tokens = new ArrayList<>();
         String outputFile = null;
         String errorFile = null;
+        boolean appendOutput = false;
         StringBuilder currentToken = new StringBuilder();
         boolean inSingleQuotes = false;
         boolean inDoubleQuotes = false;
@@ -59,6 +60,16 @@ class LineParser {
                     inSingleQuotes = true;
                 } else if (c == DOUBLE) {
                     inDoubleQuotes = true;
+                } else if (c == '1' && index + 2 < input.length() && 
+                         input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
+                    if (currentToken.length() > 0) {
+                        tokens.add(currentToken.toString());
+                        currentToken.setLength(0);
+                    }
+                    foundRedirect = true;
+                    isErrorRedirect = false;
+                    appendOutput = true;
+                    index += 2; // Skip the following '>>' characters
                 } else if (c == '2' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
                     if (currentToken.length() > 0) {
                         tokens.add(currentToken.toString());
@@ -67,6 +78,15 @@ class LineParser {
                     foundRedirect = true;
                     isErrorRedirect = true;
                     index++; // Skip the following '>' character
+                } else if (c == '>' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
+                    if (currentToken.length() > 0) {
+                        tokens.add(currentToken.toString());
+                        currentToken.setLength(0);
+                    }
+                    foundRedirect = true;
+                    isErrorRedirect = false;
+                    appendOutput = true;
+                    index++; // Skip the second '>' character
                 } else if (c == '>' && !foundRedirect) {
                     if (currentToken.length() > 0) {
                         if (currentToken.toString().equals("1")) {
@@ -114,7 +134,7 @@ class LineParser {
             }
         }
         
-        return new CommandLine(tokens, outputFile, errorFile);
+        return new CommandLine(tokens, outputFile, errorFile, appendOutput);
     }
 }
 
@@ -122,11 +142,13 @@ class CommandLine {
     private final List<String> tokens;
     private final String outputFile;
     private final String errorFile;
+    private final boolean appendOutput;
     
-    public CommandLine(List<String> tokens, String outputFile, String errorFile) {
+    public CommandLine(List<String> tokens, String outputFile, String errorFile, boolean appendOutput) {
         this.tokens = tokens;
         this.outputFile = outputFile;
         this.errorFile = errorFile;
+        this.appendOutput = appendOutput;
     }
     
     public List<String> getTokens() {
@@ -139,5 +161,9 @@ class CommandLine {
     
     public String getErrorFile() {
         return errorFile;
+    }
+    
+    public boolean isAppendOutput() {
+        return appendOutput;
     }
 }
