@@ -46,7 +46,7 @@ public class LineParser {
                         stringBuilder.append(SPACE);  // Add space if inside quotes
                     } else {
                         // If outside quotes and token is not empty, add it and reset
-                        if (stringBuilder.length() > 0 && !firstToken) {
+                        if (stringBuilder.length() > 0) {
                             tokens.add(stringBuilder.toString()); // Add token
                             stringBuilder.setLength(0);  // Reset for next token
                         }
