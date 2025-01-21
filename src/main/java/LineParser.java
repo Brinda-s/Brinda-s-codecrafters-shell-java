@@ -1,3 +1,4 @@
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,41 +25,52 @@ public class LineParser {
         while (index < input.length()) {
             char c = input.charAt(index);
 
-            // Handle escape sequences
             if (escaped) {
-                if (c == 'n') {
-                    currentToken.append('\n'); // Handle newline escape
+                // Handle escape sequences inside double quotes
+                if (c == ESCAPE || c == '"' || c == '\\' || c == 'n') {
+                    if (c == 'n') {
+                        currentToken.append('\n'); // Handle newline escape
+                    } else {
+                        currentToken.append(c); // Handle other escape sequences
+                    }
                 } else {
-                    currentToken.append(c); // Append the escaped character
+                    // Invalid escape sequence
+                    currentToken.append(ESCAPE).append(c);
                 }
-                escaped = false; // Reset escape flag
+                escaped = false;
             } else if (c == ESCAPE) {
-                escaped = true; // Set the escape flag
+                // Handle start of escape sequence inside double quotes
+                escaped = true;
             } else if (c == SINGLE && !inDoubleQuotes) {
-                inSingleQuotes = !inSingleQuotes; // Toggle single quotes
+                // Toggle single quote only when not inside double quotes
+                inSingleQuotes = !inSingleQuotes;
             } else if (c == DOUBLE && !inSingleQuotes) {
-                inDoubleQuotes = !inDoubleQuotes; // Toggle double quotes
+                // Toggle double quote only when not inside single quotes
+                inDoubleQuotes = !inDoubleQuotes;
             } else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
-                // Handle whitespace outside quotes (split token)
+                // Add token if not in quotes and whitespace encountered
                 if (currentToken.length() > 0) {
                     result.add(currentToken.toString());
                     currentToken.setLength(0);
                 }
             } else {
-                // Inside quotes (single or double), append characters normally
+                // Handle inside single quotes - treat backslashes literally
                 if (inSingleQuotes) {
-                    currentToken.append(c); // Inside single quotes, treat everything literally
-                } else if (inDoubleQuotes) {
-                    currentToken.append(c); // Inside double quotes, append normally
+                    // Just append the backslash as a literal backslash inside single quotes
+                    if (c == ESCAPE) {
+                        currentToken.append(ESCAPE);
+                    } else {
+                        currentToken.append(c);
+                    }
                 } else {
-                    currentToken.append(c); // Outside quotes, just append
+                    currentToken.append(c);
                 }
             }
 
-            index++; // Move to the next character
+            index++;
         }
 
-        // Add the last token if any
+        // Add remaining token to the result
         if (currentToken.length() > 0) {
             result.add(currentToken.toString());
         }
