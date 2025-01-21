@@ -25,19 +25,19 @@ public class LineParser {
             char c = input.charAt(index);
             
             if (escaped) {
-                // Handle backslashes inside double quotes (escape special characters)
+                // Handle the backslash within double quotes and treat it as part of the string
                 if (inDoubleQuotes) {
                     if (c == ESCAPE || c == '$' || c == DOUBLE || c == '\n') {
                         currentToken.append(c);
                     } else {
-                        currentToken.append(ESCAPE).append(c);  // treat as literal backslash
+                        currentToken.append(ESCAPE).append(c); // treat as literal backslash
                     }
                 } else {
-                    currentToken.append(ESCAPE).append(c);  // treat as literal outside quotes
+                    currentToken.append(ESCAPE).append(c); // treat as literal outside quotes
                 }
                 escaped = false;
             } else if (c == ESCAPE) {
-                // In double quotes, check for escape characters
+                // Handle escape sequences inside double quotes specifically
                 if (inDoubleQuotes) {
                     // Look ahead to see if it's escaping a valid special character
                     if (index + 1 < input.length() && 
