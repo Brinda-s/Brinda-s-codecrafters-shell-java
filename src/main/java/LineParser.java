@@ -1,9 +1,7 @@
-
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.List;
-
 
 // LineParser class should handle spaces correctly within quoted strings
 public class LineParser {
@@ -22,26 +20,50 @@ public class LineParser {
     public List<String> parse() {
         List<String> tokens = new ArrayList<>();
         char character;
+        boolean insideSingleQuotes = false;
+        boolean insideDoubleQuotes = false;
 
         while ((character = iterator.next()) != CharacterIterator.DONE) {
             switch (character) {
-                case SINGLE -> singleQuote();
-                case DOUBLE -> doubleQuote();
-                case SPACE -> handleSpace(tokens);
-                default -> stringBuilder.append(character);
+                case SINGLE -> {
+                    insideSingleQuotes = !insideSingleQuotes;  // Toggle insideSingleQuotes
+                    if (!insideSingleQuotes) {
+                        tokens.add(stringBuilder.toString());  // End of single quoted string
+                        stringBuilder.setLength(0);  // Reset for next token
+                    }
+                }
+                case DOUBLE -> {
+                    insideDoubleQuotes = !insideDoubleQuotes;  // Toggle insideDoubleQuotes
+                    if (!insideDoubleQuotes) {
+                        tokens.add(stringBuilder.toString());  // End of double quoted string
+                        stringBuilder.setLength(0);  // Reset for next token
+                    }
+                }
+                case SPACE -> handleSpace(tokens, insideDoubleQuotes, insideSingleQuotes);
+                default -> stringBuilder.append(character);  // Add character to the current token
             }
         }
 
+        // Add the last token if any
         if (stringBuilder.length() > 0) {
             tokens.add(stringBuilder.toString());
         }
         return tokens;
     }
 
-    private void handleSpace(List<String> tokens) {
-        if (stringBuilder.length() > 0) {
-            tokens.add(stringBuilder.toString());
-            stringBuilder.setLength(0); // Reset the stringBuilder for the next token
+    private void handleSpace(List<String> tokens, boolean insideDoubleQuotes, boolean insideSingleQuotes) {
+        // If we are not inside quotes, we should handle the space
+        if (!insideSingleQuotes && !insideDoubleQuotes) {
+            if (stringBuilder.length() > 0) {
+                tokens.add(stringBuilder.toString());
+                stringBuilder.setLength(0); // Reset for the next token
+            }
+            // Add a space between tokens if necessary
+            if (tokens.size() > 0 && !tokens.get(tokens.size() - 1).endsWith(" ")) {
+                tokens.add(" ");  // Preserve space outside quotes
+            }
+        } else {
+            stringBuilder.append(SPACE);  // Keep space inside quotes
         }
     }
 

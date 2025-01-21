@@ -36,6 +36,7 @@ public class Main {
             }
 
             // Use the LineParser for echo and cat commands to handle quotes
+            // Inside your main method, echo handling
             if (input.startsWith("echo ")) {
                 String text = input.substring(5).trim();
                 LineParser parser = new LineParser(text);  // Parse using LineParser
@@ -51,13 +52,13 @@ public class Main {
                     output.append(token);
                     firstToken = false;
                 }
-            
+
                 // Print the output
                 System.out.println(output.toString());
                 System.out.print("$ ");
                 continue;
             }
-            
+
             
             
 
