@@ -1,36 +1,33 @@
-import java.io.*;
+
 import java.util.ArrayList;
 import java.util.List;
+
 
 public class LineParser {
     public static final char SINGLE = '\'';
     public static final char DOUBLE = '"';
     public static final char ESCAPE = '\\';
-    public static final String REDIRECT_OPERATOR = ">";
-    public static final String REDIRECT_OPERATOR_1 = "1>";
-
+    
     private final String input;
     private int index;
-
+    
     public LineParser(String input) {
         this.input = input;
         this.index = 0;
     }
-
-    public List<String> parse() {
-        List<String> result = new ArrayList<>();
+    
+    public CommandLine parse() {
+        List<String> tokens = new ArrayList<>();
+        String outputFile = null;
         StringBuilder currentToken = new StringBuilder();
         boolean inSingleQuotes = false;
         boolean inDoubleQuotes = false;
         boolean escaped = false;
-
-        // Check if we have redirection operator
-        String filePath = null;
-        boolean redirectionDetected = false;
-
+        boolean foundRedirect = false;
+        
         while (index < input.length()) {
             char c = input.charAt(index);
-
+            
             if (inSingleQuotes) {
                 if (c == SINGLE) {
                     inSingleQuotes = false;
@@ -62,77 +59,64 @@ public class LineParser {
                     inSingleQuotes = true;
                 } else if (c == DOUBLE) {
                     inDoubleQuotes = true;
-                } else if (c == ' ' || c == '\t') {
+                } else if (c == '>' && !foundRedirect) {
+                    // Handle redirection
                     if (currentToken.length() > 0) {
-                        result.add(currentToken.toString());
-                        currentToken.setLength(0);
+                        if (currentToken.toString().equals("1")) {
+                            currentToken.setLength(0);
+                        } else {
+                            tokens.add(currentToken.toString());
+                            currentToken.setLength(0);
+                        }
                     }
-                } else if (c == '>' || c == '1') {
-                    if (input.substring(index, index + 2).equals(REDIRECT_OPERATOR) ||
-                        input.substring(index, index + 2).equals(REDIRECT_OPERATOR_1)) {
-                        redirectionDetected = true;
-                        index += 1;  // Skip `>` or `1>`
-                        continue;  // Skip further processing for this char, handle redirection separately
+                    foundRedirect = true;
+                } else if (Character.isWhitespace(c)) {
+                    if (currentToken.length() > 0) {
+                        if (foundRedirect) {
+                            outputFile = currentToken.toString();
+                            currentToken.setLength(0);
+                            foundRedirect = false;
+                        } else {
+                            tokens.add(currentToken.toString());
+                            currentToken.setLength(0);
+                        }
                     }
-                    currentToken.append(c);
                 } else {
                     currentToken.append(c);
                 }
             }
-
+            
             index++;
         }
-
-        // If redirection was detected, capture the file path
-        if (redirectionDetected) {
-            int fileIndex = input.indexOf(">", index);
-            if (fileIndex != -1) {
-                filePath = input.substring(fileIndex + 1).trim();  // Get the file path after '>'
-            }
-        }
-
+        
+        // Handle any remaining token
         if (currentToken.length() > 0) {
-            result.add(currentToken.toString());
-        }
-
-        // Handle redirection output to file
-        if (filePath != null) {
-            redirectToFile(result, filePath);
-        }
-
-        return result;
-    }
-
-    private void redirectToFile(List<String> commandArgs, String filePath) {
-        try {
-            // Get the parent directory of the file
-            File file = new File(filePath);
-            File parentDir = file.getParentFile();
-    
-            // Ensure the parent directory exists, create it if it doesn't
-            if (parentDir != null && !parentDir.exists()) {
-                if (!parentDir.mkdirs()) {
-                    System.err.println("Failed to create directories: " + parentDir);
-                    return;
-                }
-            }
-    
-            // Create the file if it doesn't exist
-            if (file.createNewFile() || file.exists()) {
-                // Write the command output to the file
-                try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-                    for (String token : commandArgs) {
-                        writer.write(token + " ");
-                    }
-                    writer.newLine();
-                }
+            if (foundRedirect) {
+                outputFile = currentToken.toString();
             } else {
-                System.err.println("Failed to create file: " + filePath);
+                tokens.add(currentToken.toString());
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
+        
+        return new CommandLine(tokens, outputFile);
+    }
+}
+
+// Helper class to hold parsed command information
+class CommandLine {
+    private final List<String> tokens;
+    private final String outputFile;
+    
+    public CommandLine(List<String> tokens, String outputFile) {
+        this.tokens = tokens;
+        this.outputFile = outputFile;
     }
     
+    public List<String> getTokens() {
+        return tokens;
+    }
     
+    public String getOutputFile() {
+        return outputFile;
+    }
 }
