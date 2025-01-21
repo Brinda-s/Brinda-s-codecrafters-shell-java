@@ -45,11 +45,12 @@ public class LineParser {
                         stringBuilder.append(SPACE);  // Inside quotes, space is part of the token
                     } else {
                         // Outside quotes, space is used to separate tokens
-                        if (stringBuilder.length() > 0) {
+                        if (stringBuilder.length() > 0 && !firstToken) {
                             tokens.add(stringBuilder.toString()); // Add token
                             stringBuilder.setLength(0);  // Reset for next token
                         }
                     }
+                    firstToken = false;
                     break;
                 default:
                     stringBuilder.append(character);  // Add non-space character to the current token
