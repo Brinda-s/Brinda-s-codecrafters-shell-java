@@ -52,20 +52,18 @@ public class LineParser {
     }
 
     private void handleSpace(List<String> tokens, boolean insideDoubleQuotes, boolean insideSingleQuotes) {
-        // If we are not inside quotes, we should handle the space
+        // Only add a space if we're not inside quotes
         if (!insideSingleQuotes && !insideDoubleQuotes) {
             if (stringBuilder.length() > 0) {
-                tokens.add(stringBuilder.toString());
-                stringBuilder.setLength(0); // Reset for the next token
-            }
-            // Add a space between tokens if necessary
-            if (tokens.size() > 0 && !tokens.get(tokens.size() - 1).endsWith(" ")) {
-                tokens.add(" ");  // Preserve space outside quotes
+                tokens.add(stringBuilder.toString());  // Add the token
+                stringBuilder.setLength(0);  // Reset the stringBuilder for the next token
             }
         } else {
-            stringBuilder.append(SPACE);  // Keep space inside quotes
+            // Inside quotes, just append the space as part of the current token
+            stringBuilder.append(SPACE);
         }
     }
+    
 
     private void singleQuote() {
         char character;
