@@ -25,23 +25,20 @@ public class LineParser {
             char c = input.charAt(index);
 
             if (escaped) {
-                // Handle escape sequences
-                if (inDoubleQuotes) {
-                    if (c == DOUBLE || c == ESCAPE || c == 'n') {
-                        if (c == 'n') {
-                            currentToken.append('\n'); // Translate \n to newline
-                        } else {
-                            currentToken.append(c); // Add escaped double quote or backslash
-                        }
+                // Handle escape sequences inside quotes
+                if (c == ESCAPE || c == '"' || c == '\\' || c == 'n') {
+                    if (c == 'n') {
+                        currentToken.append('\n');
                     } else {
-                        currentToken.append(ESCAPE).append(c); // Invalid escape, treat as literal
+                        currentToken.append(c);
                     }
                 } else {
-                    currentToken.append(c); // Append literal character after escape
+                    // Invalid escape sequence
+                    currentToken.append(ESCAPE).append(c);
                 }
                 escaped = false;
             } else if (c == ESCAPE) {
-                escaped = true; // Start escape sequence
+                escaped = true; // Handle the start of escape sequence
             } else if (c == SINGLE && !inDoubleQuotes) {
                 inSingleQuotes = !inSingleQuotes; // Toggle single quotes
             } else if (c == DOUBLE && !inSingleQuotes) {
@@ -53,7 +50,7 @@ public class LineParser {
                     currentToken.setLength(0);
                 }
             } else {
-                currentToken.append(c); // Add regular character
+                currentToken.append(c); // Regular character handling
             }
 
             index++;
