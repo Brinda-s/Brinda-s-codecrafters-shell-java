@@ -38,16 +38,8 @@ public class LineParser {
                 }
             } else if (c == SINGLE && !inDoubleQuotes) {
                 inSingleQuotes = !inSingleQuotes;  // Toggle single quotes state
-                if (!inSingleQuotes && currentToken.length() > 0) {
-                    result.add(currentToken.toString());
-                    currentToken.setLength(0);
-                }
             } else if (c == DOUBLE && !inSingleQuotes) {
                 inDoubleQuotes = !inDoubleQuotes;  // Toggle double quotes state
-                if (!inDoubleQuotes && currentToken.length() > 0) {
-                    result.add(currentToken.toString());
-                    currentToken.setLength(0);
-                }
             } else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
                 if (currentToken.length() > 0) {
                     result.add(currentToken.toString());
