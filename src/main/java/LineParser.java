@@ -25,30 +25,30 @@ public class LineParser {
             char c = input.charAt(index);
             
             if (escaped) {
-                // When escaped, always append both the backslash and the character
-                if (inDoubleQuotes || inSingleQuotes) {
-                    currentToken.append(ESCAPE);
-                }
-                currentToken.append(c);
-                escaped = false;
-            } else if (c == ESCAPE) {
-                if (inSingleQuotes) {
-                    // In single quotes, treat backslash as literal
-                    currentToken.append(c);
-                } else if (inDoubleQuotes) {
-                    // In double quotes, preserve backslash for file paths
-                    if (index + 1 < input.length()) {
-                        char nextChar = input.charAt(index + 1);
-                        if (nextChar == SINGLE || nextChar == DOUBLE || nextChar == ESCAPE) {
-                            escaped = true;
-                        } else {
-                            currentToken.append(c);
-                        }
-                    } else {
+                // Handle backslashes inside double quotes (escape special characters)
+                if (inDoubleQuotes) {
+                    if (c == ESCAPE || c == '$' || c == DOUBLE || c == '\n') {
                         currentToken.append(c);
+                    } else {
+                        currentToken.append(ESCAPE).append(c);  // treat as literal backslash
                     }
                 } else {
-                    escaped = true;
+                    currentToken.append(ESCAPE).append(c);  // treat as literal outside quotes
+                }
+                escaped = false;
+            } else if (c == ESCAPE) {
+                // In double quotes, check for escape characters
+                if (inDoubleQuotes) {
+                    // Look ahead to see if it's escaping a valid special character
+                    if (index + 1 < input.length() && 
+                        (input.charAt(index + 1) == ESCAPE || input.charAt(index + 1) == '$' ||
+                        input.charAt(index + 1) == DOUBLE || input.charAt(index + 1) == '\n')) {
+                        escaped = true;  // start escape sequence
+                    } else {
+                        currentToken.append(c);  // just add the backslash as a normal character
+                    }
+                } else {
+                    escaped = true;  // start escape sequence for normal cases
                 }
             } else if (c == SINGLE && !inDoubleQuotes) {
                 inSingleQuotes = !inSingleQuotes;
@@ -66,7 +66,7 @@ public class LineParser {
             index++;
         }
         
-        // Handle any remaining token
+        // Add any remaining token
         if (currentToken.length() > 0) {
             result.add(currentToken.toString());
         }
