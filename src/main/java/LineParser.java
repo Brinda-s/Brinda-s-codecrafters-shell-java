@@ -21,6 +21,7 @@ public class LineParser {
         char character;
         boolean insideSingleQuotes = false;
         boolean insideDoubleQuotes = false;
+        boolean firstToken = true;
 
         while ((character = iterator.next()) != CharacterIterator.DONE) {
             switch (character) {
@@ -41,7 +42,8 @@ public class LineParser {
                     }
                     break;
                 case SPACE:
-                    handleSpace(tokens, insideSingleQuotes, insideDoubleQuotes);
+                    handleSpace(tokens, insideSingleQuotes, insideDoubleQuotes, firstToken);
+                    firstToken = false; // After first space, reset flag
                     break;
                 default:
                     stringBuilder.append(character);  // Add character to the current token
@@ -55,16 +57,16 @@ public class LineParser {
         return tokens;
     }
 
-    private void handleSpace(List<String> tokens, boolean insideSingleQuotes, boolean insideDoubleQuotes) {
-        // Only treat space as a separator if we are not inside quotes
-        if (!insideSingleQuotes && !insideDoubleQuotes) {
-            if (stringBuilder.length() > 0) {
-                tokens.add(stringBuilder.toString());  // Add the token
+    private void handleSpace(List<String> tokens, boolean insideSingleQuotes, boolean insideDoubleQuotes, boolean firstToken) {
+        // If we're inside quotes, treat space as part of the token
+        if (insideSingleQuotes || insideDoubleQuotes) {
+            stringBuilder.append(SPACE);
+        } else {
+            // Only add token if it's not the first token (no leading spaces)
+            if (stringBuilder.length() > 0 && !firstToken) {
+                tokens.add(stringBuilder.toString());  // Add token
                 stringBuilder.setLength(0);  // Reset the stringBuilder for the next token
             }
-        } else {
-            // Inside quotes, treat space as part of the token
-            stringBuilder.append(SPACE);
         }
     }
 }
