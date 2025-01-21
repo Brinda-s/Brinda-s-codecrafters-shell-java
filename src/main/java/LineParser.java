@@ -21,32 +21,43 @@ public class LineParser {
         char character;
         boolean insideSingleQuotes = false;
         boolean insideDoubleQuotes = false;
-        boolean firstToken = true;
 
+        // Loop through the string to process each character
         while ((character = iterator.next()) != CharacterIterator.DONE) {
             switch (character) {
                 case SINGLE:
-                    insideSingleQuotes = !insideSingleQuotes;  // Toggle insideSingleQuotes
+                    // Toggle inside single quotes
+                    insideSingleQuotes = !insideSingleQuotes;
+                    // Add token when exiting single quotes
                     if (!insideSingleQuotes) {
-                        // End of single-quoted string
                         tokens.add(stringBuilder.toString());
                         stringBuilder.setLength(0);  // Reset for next token
                     }
                     break;
                 case DOUBLE:
-                    insideDoubleQuotes = !insideDoubleQuotes;  // Toggle insideDoubleQuotes
+                    // Toggle inside double quotes
+                    insideDoubleQuotes = !insideDoubleQuotes;
+                    // Add token when exiting double quotes
                     if (!insideDoubleQuotes) {
-                        // End of double-quoted string
                         tokens.add(stringBuilder.toString());
                         stringBuilder.setLength(0);  // Reset for next token
                     }
                     break;
                 case SPACE:
-                    handleSpace(tokens, insideSingleQuotes, insideDoubleQuotes, firstToken);
-                    firstToken = false; // After first space, reset flag
+                    // If inside quotes, treat space as part of the token
+                    if (insideSingleQuotes || insideDoubleQuotes) {
+                        stringBuilder.append(SPACE);
+                    } else {
+                        // Add current token and reset if not inside quotes
+                        if (stringBuilder.length() > 0) {
+                            tokens.add(stringBuilder.toString());
+                            stringBuilder.setLength(0);
+                        }
+                    }
                     break;
                 default:
-                    stringBuilder.append(character);  // Add character to the current token
+                    // Append any character (non-space) to the current token
+                    stringBuilder.append(character);
             }
         }
 
@@ -54,19 +65,7 @@ public class LineParser {
         if (stringBuilder.length() > 0) {
             tokens.add(stringBuilder.toString());
         }
-        return tokens;
-    }
 
-    private void handleSpace(List<String> tokens, boolean insideSingleQuotes, boolean insideDoubleQuotes, boolean firstToken) {
-        // If we're inside quotes, treat space as part of the token
-        if (insideSingleQuotes || insideDoubleQuotes) {
-            stringBuilder.append(SPACE);
-        } else {
-            // Only add token if it's not the first token (no leading spaces)
-            if (stringBuilder.length() > 0 && !firstToken) {
-                tokens.add(stringBuilder.toString());  // Add token
-                stringBuilder.setLength(0);  // Reset the stringBuilder for the next token
-            }
-        }
+        return tokens;
     }
 }
