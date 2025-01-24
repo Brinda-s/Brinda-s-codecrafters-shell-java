@@ -61,23 +61,38 @@ public class Main {
                                         ProcessBuilder.Redirect.to(outFile));
                                 }
 
-                                // Error redirection
+                                // Error redirection with explicit error handling
                                 if (errorFile != null) {
                                     File errFile = new File(errorFile);
                                     createParentDirectories(errFile);
-                                    pb.redirectError(appendOutput ? // Use appendOutput as a fallback
-                                        ProcessBuilder.Redirect.appendTo(errFile) : 
-                                        ProcessBuilder.Redirect.to(errFile));
+                                    
+                                    // Start the process
+                                    Process process = pb.start();
+                                    
+                                    // Capture and redirect stderr
+                                    try (
+                                        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                                        PrintWriter errorWriter = new PrintWriter(new FileWriter(errFile, appendOutput))
+                                    ) {
+                                        String errorLine;
+                                        while ((errorLine = errorReader.readLine()) != null) {
+                                            errorWriter.println(errorLine);
+                                            // Also print to system stderr
+                                            System.err.println(errorLine);
+                                        }
+                                    }
+                                    
+                                    process.waitFor();
+                                    executed = true;
+                                    break;
                                 } else {
-                                    pb.redirectErrorStream(false);
+                                    // Standard execution with inherited IO
+                                    pb.inheritIO();
+                                    Process process = pb.start();
+                                    process.waitFor();
+                                    executed = true;
+                                    break;
                                 }
-
-                                // Execute the process
-                                Process process = pb.start();
-                                int exitCode = process.waitFor();
-
-                                executed = true;
-                                break;
                             } catch (IOException | InterruptedException e) {
                                 System.err.println(command + ": " + e.getMessage());
                                 break;
