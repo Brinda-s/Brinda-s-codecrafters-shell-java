@@ -74,7 +74,7 @@ public class Main {
                         System.setOut(new PrintStream(new FileOutputStream(outputFile, appendOutput)));
                     }
                     if (errorFile != null) {
-                        System.setErr(new PrintStream(new FileOutputStream(errorFile)));
+                        System.setErr(new PrintStream(new FileOutputStream(errorFile, true)));
                     }
 
                     if (command.equals("echo")) {
@@ -171,7 +171,7 @@ public class Main {
                                 }
                                 
                                 if (errorFile != null) {
-                                    pb.redirectError(new File(errorFile));
+                                    pb.redirectError(ProcessBuilder.Redirect.appendTo(new File(errorFile)));
                                 } else {
                                     pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                                 }
@@ -189,7 +189,7 @@ public class Main {
 
                 if (!executed) {
                     if (errorFile != null) {
-                        try (PrintStream err = new PrintStream(new FileOutputStream(errorFile))) {
+                        try (PrintStream err = new PrintStream(new FileOutputStream(errorFile, true))) {
                             err.println(command + ": command not found");
                         }
                     } else {
