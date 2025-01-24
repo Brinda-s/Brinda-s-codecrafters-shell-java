@@ -116,7 +116,7 @@ public class Main {
     private static void createParentDirectories(File file) {
         File parentDir = file.getParentFile();
         if (parentDir != null && !parentDir.exists()) {
-            parentDir.mkdirs();
+            parentDir.mkdirs();  // Make sure all necessary parent directories exist
         }
     }
 }
