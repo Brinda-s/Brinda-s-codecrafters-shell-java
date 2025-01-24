@@ -1,11 +1,5 @@
-import java.util.Scanner;
-import java.util.Set;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.HashSet;
-import java.util.List;
+import java.io.*;
+import java.util.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -65,9 +59,7 @@ public class Main {
                                 // Stdout redirection
                                 if (outputFile != null) {
                                     File outputFileObj = new File(outputFile);
-                                    if (outputFileObj.getParentFile() != null) {
-                                        outputFileObj.getParentFile().mkdirs();
-                                    }
+                                    createParentDirectories(outputFileObj);
                                     if (appendOutput) {
                                         pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outputFileObj));
                                     } else {
@@ -80,22 +72,33 @@ public class Main {
                                 // Stderr redirection
                                 if (errorFile != null) {
                                     File errorFileObj = new File(errorFile);
-                                    if (errorFileObj.getParentFile() != null) {
-                                        errorFileObj.getParentFile().mkdirs();
+                                    createParentDirectories(errorFileObj);
+                                    
+                                    // Redirect stderr to file
+                                    pb.redirectErrorStream(false);
+                                    Process process = pb.start();
+                                    
+                                    try (
+                                        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                                        FileWriter errorWriter = new FileWriter(errorFileObj, true)
+                                    ) {
+                                        String errorLine;
+                                        while ((errorLine = errorReader.readLine()) != null) {
+                                            errorWriter.write(errorLine + "\n");
+                                        }
                                     }
                                     
-                                    // Capture stderr to file
-                                    ProcessBuilder.Redirect redirect = ProcessBuilder.Redirect.appendTo(errorFileObj);
-                                    pb.redirectError(redirect);
+                                    process.waitFor();
+                                    executed = true;
+                                    break;
                                 } else {
                                     pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                                    pb.start().waitFor();
+                                    executed = true;
+                                    break;
                                 }
-                                
-                                Process process = pb.start();
-                                int exitCode = process.waitFor();
-                                executed = true;
-                                break;
                             } catch (IOException | InterruptedException e) {
+                                // Ensure error is written to file if error redirection specified
                                 if (errorFile != null) {
                                     try (PrintStream err = new PrintStream(new FileOutputStream(errorFile, true))) {
                                         err.println(e.getMessage());
@@ -119,6 +122,13 @@ public class Main {
             }
 
             System.out.print("$ ");
+        }
+    }
+
+    // Helper method to create parent directories
+    private static void createParentDirectories(File file) {
+        if (file.getParentFile() != null) {
+            file.getParentFile().mkdirs();
         }
     }
 }
