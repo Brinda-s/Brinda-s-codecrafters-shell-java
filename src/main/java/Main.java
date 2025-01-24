@@ -55,6 +55,7 @@ public class Main {
                                 // Output redirection
                                 if (outputFile != null) {
                                     File outFile = new File(outputFile);
+                                    System.out.println("Creating parent directories for output file: " + outFile.getAbsolutePath());
                                     createParentDirectories(outFile);  // Ensure parent directories are created
                                     pb.redirectOutput(appendOutput ? 
                                         ProcessBuilder.Redirect.appendTo(outFile) : 
@@ -64,6 +65,7 @@ public class Main {
                                 // Handle stderr redirection with '2>>' operator
                                 if (errorFile != null) {
                                     File errFile = new File(errorFile);
+                                    System.out.println("Creating parent directories for error file: " + errFile.getAbsolutePath());
                                     createParentDirectories(errFile);  // Ensure parent directories are created
                                     pb.redirectErrorStream(false); // We will handle stderr separately
                                     
@@ -116,6 +118,7 @@ public class Main {
     private static void createParentDirectories(File file) {
         File parentDir = file.getParentFile();
         if (parentDir != null && !parentDir.exists()) {
+            System.out.println("Creating directories: " + parentDir.getAbsolutePath());
             parentDir.mkdirs();  // Make sure all necessary parent directories exist
         }
     }
