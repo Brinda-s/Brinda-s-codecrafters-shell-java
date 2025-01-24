@@ -115,10 +115,19 @@ public class Main {
                                     pb.inheritIO();
                                 }
                                 
-                                // Stderr redirection
+                               // Stderr redirection
                                 if (errorFile != null) {
                                     File errorFileObj = new File(errorFile);
-                                    pb.redirectError(ProcessBuilder.Redirect.appendTo(errorFileObj));
+                                    
+                                    // Ensure parent directory exists
+                                    File parentDir = errorFileObj.getParentFile();
+                                    if (parentDir != null) {
+                                        parentDir.mkdirs();
+                                    }
+                                    
+                                    // Capture error output
+                                    ProcessBuilder.Redirect errorRedirect = ProcessBuilder.Redirect.appendTo(errorFileObj);
+                                    pb.redirectError(errorRedirect);
                                 } else {
                                     pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                                 }
