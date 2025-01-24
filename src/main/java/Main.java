@@ -53,46 +53,37 @@ public class Main {
                         File file = new File(dir, command);
                         if (file.exists() && file.canExecute()) {
                             try {
-                                ProcessBuilder pb = new ProcessBuilder(tokens);
-                                pb.directory(new File(currentDirectory));
-                                pb.redirectErrorStream(false);
-
-                                // Stdout redirection
-                                if (outputFile != null) {
-                                    File outputFileObj = new File(outputFile);
-                                    createParentDirectories(outputFileObj);
-                                    outputFileObj.createNewFile();
-                                }
-
-                                Process process = pb.start();
-                                
-                                // Stderr redirection
+                                // Stderr only redirection
                                 if (errorFile != null) {
                                     File errorFileObj = new File(errorFile);
                                     createParentDirectories(errorFileObj);
-                                    errorFileObj.createNewFile();
-
+                                    
+                                    ProcessBuilder pb = new ProcessBuilder(tokens);
+                                    pb.directory(new File(currentDirectory));
+                                    pb.redirectErrorStream(false);
+                                    
+                                    Process process = pb.start();
+                                    
                                     try (
                                         BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                                        FileWriter errorWriter = new FileWriter(errorFileObj, true)
+                                        PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFileObj, true))
                                     ) {
                                         String errorLine;
                                         while ((errorLine = errorReader.readLine()) != null) {
-                                            errorWriter.write(errorLine + "\n");
+                                            errorWriter.println(errorLine);
                                             System.err.println(errorLine);
                                         }
                                     }
+                                    
+                                    process.waitFor();
                                 } else {
-                                    // Default error stream handling
-                                    try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                                        String errorLine;
-                                        while ((errorLine = errorReader.readLine()) != null) {
-                                            System.err.println(errorLine);
-                                        }
-                                    }
+                                    // Standard execution
+                                    ProcessBuilder pb = new ProcessBuilder(tokens);
+                                    pb.directory(new File(currentDirectory));
+                                    pb.inheritIO();
+                                    pb.start().waitFor();
                                 }
-
-                                process.waitFor();
+                                
                                 executed = true;
                                 break;
                             } catch (IOException | InterruptedException e) {
