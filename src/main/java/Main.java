@@ -55,7 +55,7 @@ public class Main {
                                 // Output redirection
                                 if (outputFile != null) {
                                     File outFile = new File(outputFile);
-                                    createParentDirectories(outFile);
+                                    createParentDirectories(outFile);  // Ensure parent directories are created
                                     pb.redirectOutput(appendOutput ? 
                                         ProcessBuilder.Redirect.appendTo(outFile) : 
                                         ProcessBuilder.Redirect.to(outFile));
@@ -64,7 +64,7 @@ public class Main {
                                 // Handle stderr redirection with '2>>' operator
                                 if (errorFile != null) {
                                     File errFile = new File(errorFile);
-                                    createParentDirectories(errFile);
+                                    createParentDirectories(errFile);  // Ensure parent directories are created
                                     pb.redirectErrorStream(false); // We will handle stderr separately
                                     
                                     // Start the process
@@ -115,7 +115,7 @@ public class Main {
     // Helper method to create parent directories
     private static void createParentDirectories(File file) {
         File parentDir = file.getParentFile();
-        if (parentDir != null) {
+        if (parentDir != null && !parentDir.exists()) {
             parentDir.mkdirs();
         }
     }
