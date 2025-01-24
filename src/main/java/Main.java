@@ -6,12 +6,7 @@ public class Main {
         System.out.print("$ ");
 
         Scanner scanner = new Scanner(System.in);
-        Set<String> builtins = new HashSet<>();
-        builtins.add("echo");
-        builtins.add("exit");
-        builtins.add("type");
-        builtins.add("pwd");
-        builtins.add("cd");
+        Set<String> builtins = new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "cd"));
 
         String currentDirectory = System.getProperty("user.dir");
 
@@ -53,41 +48,39 @@ public class Main {
                         File file = new File(dir, command);
                         if (file.exists() && file.canExecute()) {
                             try {
-                                // Stderr only redirection
-                                if (errorFile != null) {
-                                    File errorFileObj = new File(errorFile);
-                                    createParentDirectories(errorFileObj);
-                                    
-                                    ProcessBuilder pb = new ProcessBuilder(tokens);
-                                    pb.directory(new File(currentDirectory));
-                                    pb.redirectErrorStream(false);
-                                    
-                                    Process process = pb.start();
-                                    
-                                    try (
-                                        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                                        PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFileObj, true))
-                                    ) {
-                                        String errorLine;
-                                        while ((errorLine = errorReader.readLine()) != null) {
-                                            errorWriter.println(errorLine);
-                                            System.err.println(errorLine);
-                                        }
-                                    }
-                                    
-                                    process.waitFor();
-                                } else {
-                                    // Standard execution
-                                    ProcessBuilder pb = new ProcessBuilder(tokens);
-                                    pb.directory(new File(currentDirectory));
-                                    pb.inheritIO();
-                                    pb.start().waitFor();
-                                }
+                                // Prepare ProcessBuilder
+                                ProcessBuilder pb = new ProcessBuilder(tokens);
+                                pb.directory(new File(currentDirectory));
                                 
+                                // Output redirection
+                                if (outputFile != null) {
+                                    File outFile = new File(outputFile);
+                                    createParentDirectories(outFile);
+                                    pb.redirectOutput(appendOutput ? 
+                                        ProcessBuilder.Redirect.appendTo(outFile) : 
+                                        ProcessBuilder.Redirect.to(outFile));
+                                }
+
+                                // Error redirection
+                                if (errorFile != null) {
+                                    File errFile = new File(errorFile);
+                                    createParentDirectories(errFile);
+                                    pb.redirectError(appendOutput ? // Use appendOutput as a fallback
+                                        ProcessBuilder.Redirect.appendTo(errFile) : 
+                                        ProcessBuilder.Redirect.to(errFile));
+                                } else {
+                                    pb.redirectErrorStream(false);
+                                }
+
+                                // Execute the process
+                                Process process = pb.start();
+                                int exitCode = process.waitFor();
+
                                 executed = true;
                                 break;
                             } catch (IOException | InterruptedException e) {
                                 System.err.println(command + ": " + e.getMessage());
+                                break;
                             }
                         }
                     }
@@ -105,8 +98,9 @@ public class Main {
 
     // Helper method to create parent directories
     private static void createParentDirectories(File file) {
-        if (file.getParentFile() != null) {
-            file.getParentFile().mkdirs();
+        File parentDir = file.getParentFile();
+        if (parentDir != null) {
+            parentDir.mkdirs();
         }
     }
 }
