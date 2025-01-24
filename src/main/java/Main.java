@@ -53,8 +53,12 @@ public class Main {
                         File file = new File(dir, command);
                         if (file.exists() && file.canExecute()) {
                             try {
+                                // Specific error handling with stderr redirection
                                 ProcessBuilder pb = new ProcessBuilder(tokens);
                                 pb.directory(new File(currentDirectory));
+                                pb.redirectErrorStream(false);
+                                
+                                Process process = pb.start();
                                 
                                 // Stdout redirection
                                 if (outputFile != null) {
@@ -65,8 +69,6 @@ public class Main {
                                     } else {
                                         pb.redirectOutput(outputFileObj);
                                     }
-                                } else {
-                                    pb.inheritIO();
                                 }
                                 
                                 // Stderr redirection
@@ -74,32 +76,21 @@ public class Main {
                                     File errorFileObj = new File(errorFile);
                                     createParentDirectories(errorFileObj);
                                     
-                                    // Manual stderr handling
-                                    ProcessBuilder errPb = new ProcessBuilder(tokens);
-                                    errPb.redirectErrorStream(false);
-                                    errPb.directory(new File(currentDirectory));
-                                    Process process = errPb.start();
-
                                     try (
                                         BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                                        PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFileObj, true))
+                                        FileWriter errorWriter = new FileWriter(errorFileObj, true)
                                     ) {
                                         String errorLine;
                                         while ((errorLine = errorReader.readLine()) != null) {
-                                            errorWriter.println(errorLine);
+                                            errorWriter.write(errorLine + "\n");
                                         }
                                         errorWriter.flush();
                                     }
-
-                                    process.waitFor();
-                                    executed = true;
-                                    break;
-                                } else {
-                                    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
-                                    pb.start().waitFor();
-                                    executed = true;
-                                    break;
                                 }
+                                
+                                process.waitFor();
+                                executed = true;
+                                break;
                             } catch (IOException | InterruptedException e) {
                                 // Ensure error is written to file if error redirection specified
                                 if (errorFile != null) {
