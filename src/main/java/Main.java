@@ -64,7 +64,6 @@ public class Main {
                 }
             }
 
-
             // Handle builtins
             if (isBuiltin) {
                 // Capture builtin output if redirection is specified
@@ -161,6 +160,7 @@ public class Main {
                                 pb = new ProcessBuilder(tokens);
                                 pb.directory(new File(currentDirectory));
                                 
+                                // Stdout redirection
                                 if (outputFile != null) {
                                     if (appendOutput) {
                                         pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(outputFile)));
@@ -171,8 +171,11 @@ public class Main {
                                     pb.inheritIO();
                                 }
                                 
+                                // Stderr redirection
                                 if (errorFile != null) {
-                                    pb.redirectError(ProcessBuilder.Redirect.appendTo(new File(errorFile)));
+                                    File errorFileObj = new File(errorFile);
+                                    errorFileObj.getParentFile().mkdirs();
+                                    pb.redirectError(ProcessBuilder.Redirect.appendTo(errorFileObj));
                                 } else {
                                     pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                                 }
@@ -182,20 +185,28 @@ public class Main {
                                 executed = true;
                                 break;
                             } catch (IOException | InterruptedException e) {
-                                System.err.println("Error executing command: " + e.getMessage());
+                                // We'll append the error to errorFile if specified
+                                if (errorFile != null) {
+                                    File errorFileObj = new File(errorFile);
+                                    errorFileObj.getParentFile().mkdirs();
+                                    try (PrintStream err = new PrintStream(new FileOutputStream(errorFileObj, true))) {
+                                        err.println(e.getMessage());
+                                    }
+                                } else {
+                                    System.err.println("Error executing command: " + e.getMessage());
+                                }
                             }
                         }
                     }
                 }
 
+                // Handle command not found
                 if (!executed) {
                     if (errorFile != null) {
                         File errorFileObj = new File(errorFile);
-                        errorFileObj.getParentFile().mkdirs(); // Ensure directory exists
+                        errorFileObj.getParentFile().mkdirs();
                         try (PrintStream err = new PrintStream(new FileOutputStream(errorFileObj, true))) {
                             err.println(command + ": command not found");
-                        } catch (IOException e) {
-                            System.err.println("Error writing to error file: " + e.getMessage());
                         }
                     } else {
                         System.err.println(command + ": command not found");
