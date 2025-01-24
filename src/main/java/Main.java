@@ -63,6 +63,27 @@ public class Main {
                     error.getParentFile().mkdirs();
                 }
             }
+            // Modify error file handling for external commands
+            if (errorFile != null) {
+                File errorFileObj = new File(errorFile);
+                errorFileObj.getParentFile().mkdirs(); // Ensure directory exists
+                pb.redirectError(ProcessBuilder.Redirect.appendTo(errorFileObj));
+            } else {
+                pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+            }
+
+            // Modify error file handling for commands not found
+            if (errorFile != null) {
+                File errorFileObj = new File(errorFile);
+                errorFileObj.getParentFile().mkdirs(); // Ensure directory exists
+                try (PrintStream err = new PrintStream(new FileOutputStream(errorFileObj, true))) {
+                    err.println(command + ": command not found");
+                } catch (IOException e) {
+                    System.err.println("Error writing to error file: " + e.getMessage());
+                }
+            } else {
+                System.err.println(command + ": command not found");
+            }
 
             // Handle builtins
             if (isBuiltin) {
