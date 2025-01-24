@@ -58,10 +58,14 @@ public class Main {
                 }
             }
             if (errorFile != null) {
-                File error = new File(errorFile);
-                if (error.getParentFile() != null) {
-                    error.getParentFile().mkdirs();
+                File errorFileObj = new File(errorFile);
+                // Add null check for getParentFile()
+                if (errorFileObj.getParentFile() != null) {
+                    errorFileObj.getParentFile().mkdirs();
                 }
+                pb.redirectError(ProcessBuilder.Redirect.appendTo(errorFileObj));
+            } else {
+                pb.redirectError(ProcessBuilder.Redirect.INHERIT);
             }
 
             // Handle builtins
