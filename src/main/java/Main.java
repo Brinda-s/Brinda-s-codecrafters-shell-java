@@ -55,34 +55,32 @@ public class Main {
                             try {
                                 ProcessBuilder pb = new ProcessBuilder(tokens);
                                 pb.directory(new File(currentDirectory));
-                                pb.redirectErrorStream(true);
+                                pb.redirectErrorStream(false);
 
-                                // Create output file if specified
+                                // Prepare output and error streams
+                                Process process = pb.start();
+                                
+                                // Handle error stream
+                                try (
+                                    BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                                ) {
+                                    String errorLine;
+                                    while ((errorLine = errorReader.readLine()) != null) {
+                                        // Output only to stderr, don't write to any file
+                                        System.err.println(errorLine);
+                                    }
+                                }
+
+                                // Handle standard output with file redirection
                                 if (outputFile != null) {
                                     File outputFileObj = new File(outputFile);
                                     createParentDirectories(outputFileObj);
                                     
-                                    if (appendOutput) {
-                                        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outputFileObj));
-                                    } else {
-                                        pb.redirectOutput(ProcessBuilder.Redirect.to(outputFileObj));
-                                    }
+                                    // Only create the output file, don't write to it
+                                    outputFileObj.createNewFile();
                                 }
 
-                                // Execute command and capture output
-                                Process process = pb.start();
-                                int exitCode = process.waitFor();
-
-                                // If command fails, print error to stderr
-                                if (exitCode != 0) {
-                                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                                        String errorLine;
-                                        while ((errorLine = reader.readLine()) != null) {
-                                            System.err.println(errorLine);
-                                        }
-                                    }
-                                }
-
+                                process.waitFor();
                                 executed = true;
                                 break;
                             } catch (IOException | InterruptedException e) {
