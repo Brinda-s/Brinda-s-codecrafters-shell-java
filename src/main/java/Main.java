@@ -114,12 +114,20 @@ public class Main {
         }
     }
 
-    // Helper method to create parent directories
+    // Helper method to create parent directories and confirm creation
     private static void createParentDirectories(File file) {
         File parentDir = file.getParentFile();
-        if (parentDir != null && !parentDir.exists()) {
-            System.out.println("Creating directories: " + parentDir.getAbsolutePath());
-            parentDir.mkdirs();  // Make sure all necessary parent directories exist
+        if (parentDir != null) {
+            System.out.println("Attempting to create directories: " + parentDir.getAbsolutePath());
+            if (!parentDir.exists()) {
+                if (parentDir.mkdirs()) {
+                    System.out.println("Directories created successfully: " + parentDir.getAbsolutePath());
+                } else {
+                    System.err.println("Failed to create directories: " + parentDir.getAbsolutePath());
+                }
+            } else {
+                System.out.println("Directories already exist: " + parentDir.getAbsolutePath());
+            }
         }
     }
 }
