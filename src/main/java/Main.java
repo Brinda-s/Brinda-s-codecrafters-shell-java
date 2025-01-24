@@ -33,7 +33,6 @@ public class Main {
                 continue;
             }
 
-            // Parse command line with potential redirection
             LineParser parser = new LineParser(input);
             CommandLine cmdLine = parser.parse();
             List<String> tokens = cmdLine.getTokens();
@@ -47,51 +46,14 @@ public class Main {
             }
 
             String command = tokens.get(0);
-            ProcessBuilder pb = null;
             boolean isBuiltin = builtins.contains(command);
             
-            // Ensure output and error directories exist
-            ensureDirectoryExists(outputFile);
-            ensureDirectoryExists(errorFile);
+            // Ensure directories exist for output and error files
+            createDirectoryIfNotExists(outputFile);
+            createDirectoryIfNotExists(errorFile);
 
-            // Handle builtins
-            if (isBuiltin) {
-                // Capture builtin output if redirection is specified
-                PrintStream originalOut = System.out;
-                PrintStream originalErr = System.err;
-                try {
-                    if (outputFile != null) {
-                        System.setOut(new PrintStream(new FileOutputStream(outputFile, appendOutput)));
-                    }
-                    if (errorFile != null) {
-                        System.setErr(new PrintStream(new FileOutputStream(errorFile, true)));
-                    }
-
-                    // Existing builtin command handling...
-                    if (command.equals("echo")) {
-                        StringBuilder output = new StringBuilder();
-                        for (int i = 1; i < tokens.size(); i++) {
-                            output.append(output.length() > 0 ? " " : "")
-                                  .append(tokens.get(i));
-                        }
-                        System.out.println(output.toString());
-                    } 
-                    // ... other builtin commands remain the same ...
-
-                } catch (IOException e) {
-                    System.err.println("Error redirecting output: " + e.getMessage());
-                } finally {
-                    if (outputFile != null) {
-                        System.out.flush();
-                        System.setOut(originalOut);
-                    }
-                    if (errorFile != null) {
-                        System.err.flush();
-                        System.setErr(originalErr);
-                    }
-                }
-            } else {
-                // Handle external commands
+            // Handle stderr redirection for external commands
+            if (!isBuiltin) {
                 String path = System.getenv("PATH");
                 boolean executed = false;
 
@@ -101,43 +63,48 @@ public class Main {
                         File file = new File(dir, command);
                         if (file.exists() && file.canExecute()) {
                             try {
-                                pb = new ProcessBuilder(tokens);
+                                ProcessBuilder pb = new ProcessBuilder(tokens);
                                 pb.directory(new File(currentDirectory));
                                 
                                 // Stdout redirection
                                 if (outputFile != null) {
+                                    File outputFileObj = new File(outputFile);
                                     if (appendOutput) {
-                                        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(outputFile)));
+                                        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outputFileObj));
                                     } else {
-                                        pb.redirectOutput(new File(outputFile));
+                                        pb.redirectOutput(outputFileObj);
                                     }
                                 } else {
                                     pb.inheritIO();
                                 }
                                 
-                               // Stderr redirection
+                                // Stderr redirection
                                 if (errorFile != null) {
                                     File errorFileObj = new File(errorFile);
-                                    
-                                    // Ensure parent directory exists
-                                    File parentDir = errorFileObj.getParentFile();
-                                    if (parentDir != null) {
-                                        parentDir.mkdirs();
+                                    // Ensure the directory exists
+                                    if (errorFileObj.getParentFile() != null) {
+                                        errorFileObj.getParentFile().mkdirs();
                                     }
                                     
-                                    // Capture error output
-                                    ProcessBuilder.Redirect errorRedirect = ProcessBuilder.Redirect.appendTo(errorFileObj);
-                                    pb.redirectError(errorRedirect);
+                                    // Use ProcessBuilder to redirect stderr
+                                    ProcessBuilder.Redirect redirect = ProcessBuilder.Redirect.appendTo(errorFileObj);
+                                    pb.redirectError(redirect);
                                 } else {
                                     pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                                 }
                                 
                                 Process process = pb.start();
-                                process.waitFor();
+                                int exitCode = process.waitFor();
+                                
+                                // If command fails and no error redirection, print to stderr
+                                if (exitCode != 0 && errorFile == null) {
+                                    System.err.println(command + ": command failed");
+                                }
+                                
                                 executed = true;
                                 break;
                             } catch (IOException | InterruptedException e) {
-                                // Redirect error if error file is specified
+                                // Handle execution errors
                                 if (errorFile != null) {
                                     try (PrintStream err = new PrintStream(new FileOutputStream(errorFile, true))) {
                                         err.println(e.getMessage());
@@ -166,8 +133,8 @@ public class Main {
         }
     }
 
-    // Helper method to ensure directory exists for a file
-    private static void ensureDirectoryExists(String filePath) {
+    // Helper method to create directory for a file
+    private static void createDirectoryIfNotExists(String filePath) {
         if (filePath != null) {
             File file = new File(filePath);
             File parentDir = file.getParentFile();
