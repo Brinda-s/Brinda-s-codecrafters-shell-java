@@ -57,27 +57,32 @@ public class Main {
                                 pb.directory(new File(currentDirectory));
                                 pb.redirectErrorStream(false);
 
-                                // Prepare output and error streams
                                 Process process = pb.start();
                                 
-                                // Handle error stream
-                                try (
-                                    BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                                ) {
-                                    String errorLine;
-                                    while ((errorLine = errorReader.readLine()) != null) {
-                                        // Output only to stderr, don't write to any file
-                                        System.err.println(errorLine);
-                                    }
-                                }
+                                // Stderr redirection handling
+                                if (errorFile != null) {
+                                    File errorFileObj = new File(errorFile);
+                                    createParentDirectories(errorFileObj);
+                                    errorFileObj.createNewFile(); // Ensure file exists
 
-                                // Handle standard output with file redirection
-                                if (outputFile != null) {
-                                    File outputFileObj = new File(outputFile);
-                                    createParentDirectories(outputFileObj);
-                                    
-                                    // Only create the output file, don't write to it
-                                    outputFileObj.createNewFile();
+                                    try (
+                                        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                                        FileWriter errorWriter = new FileWriter(errorFileObj, true)
+                                    ) {
+                                        String errorLine;
+                                        while ((errorLine = errorReader.readLine()) != null) {
+                                            errorWriter.write(errorLine + "\n");
+                                            System.err.println(errorLine);
+                                        }
+                                    }
+                                } else {
+                                    // Default error stream handling
+                                    try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                                        String errorLine;
+                                        while ((errorLine = errorReader.readLine()) != null) {
+                                            System.err.println(errorLine);
+                                        }
+                                    }
                                 }
 
                                 process.waitFor();
