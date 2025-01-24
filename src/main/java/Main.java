@@ -74,20 +74,23 @@ public class Main {
                                     File errorFileObj = new File(errorFile);
                                     createParentDirectories(errorFileObj);
                                     
-                                    // Redirect stderr to file
-                                    pb.redirectErrorStream(false);
-                                    Process process = pb.start();
-                                    
+                                    // Manual stderr handling
+                                    ProcessBuilder errPb = new ProcessBuilder(tokens);
+                                    errPb.redirectErrorStream(false);
+                                    errPb.directory(new File(currentDirectory));
+                                    Process process = errPb.start();
+
                                     try (
                                         BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                                        FileWriter errorWriter = new FileWriter(errorFileObj, true)
+                                        PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFileObj, true))
                                     ) {
                                         String errorLine;
                                         while ((errorLine = errorReader.readLine()) != null) {
-                                            errorWriter.write(errorLine + "\n");
+                                            errorWriter.println(errorLine);
                                         }
+                                        errorWriter.flush();
                                     }
-                                    
+
                                     process.waitFor();
                                     executed = true;
                                     break;
