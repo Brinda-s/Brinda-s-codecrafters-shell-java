@@ -28,7 +28,7 @@ public class Main {
             String outputFile = cmdLine.getOutputFile();
             String errorFile = cmdLine.getErrorFile();
             boolean appendOutput = cmdLine.isAppendOutput();
-            
+
             if (tokens.isEmpty()) {
                 System.out.print("$ ");
                 continue;
@@ -36,7 +36,7 @@ public class Main {
 
             String command = tokens.get(0);
             boolean isBuiltin = builtins.contains(command);
-            
+
             // Handle external commands
             if (!isBuiltin) {
                 String path = System.getenv("PATH");
@@ -52,39 +52,19 @@ public class Main {
                                 ProcessBuilder pb = new ProcessBuilder(tokens);
                                 pb.directory(new File(currentDirectory));
 
-                                // Output redirection
-                                if (outputFile != null) {
-                                    File outFile = new File(outputFile);
-                                    System.out.println("Creating parent directories for output file: " + outFile.getAbsolutePath());
-                                    createParentDirectories(outFile);  // Ensure parent directories are created
-                                    pb.redirectOutput(appendOutput ? 
-                                        ProcessBuilder.Redirect.appendTo(outFile) : 
-                                        ProcessBuilder.Redirect.to(outFile));
-                                }
-
-                                // Handle stderr redirection with '2>>' operator
+                                // Handle error file redirection
                                 if (errorFile != null) {
                                     File errFile = new File(errorFile);
-                                    System.out.println("Creating parent directories for error file: " + errFile.getAbsolutePath());
                                     createParentDirectories(errFile);  // Ensure parent directories are created
                                     pb.redirectErrorStream(false); // We will handle stderr separately
+
+                                    // Redirect stderr to file with append mode if '2>>' operator used
+                                    pb.redirectError(ProcessBuilder.Redirect.appendTo(errFile));
                                     
                                     // Start the process
                                     Process process = pb.start();
                                     
                                     // Capture and redirect stderr
-                                    try (
-                                        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                                        PrintWriter errorWriter = new PrintWriter(new FileWriter(errFile, appendOutput))
-                                    ) {
-                                        String errorLine;
-                                        while ((errorLine = errorReader.readLine()) != null) {
-                                            errorWriter.println(errorLine);
-                                            // Also print to system stderr
-                                            System.err.println(errorLine);
-                                        }
-                                    }
-                                    
                                     process.waitFor();
                                     executed = true;
                                     break;
@@ -118,15 +98,12 @@ public class Main {
     private static void createParentDirectories(File file) {
         File parentDir = file.getParentFile();
         if (parentDir != null) {
-            System.out.println("Attempting to create directories: " + parentDir.getAbsolutePath());
             if (!parentDir.exists()) {
                 if (parentDir.mkdirs()) {
-                    System.out.println("Directories created successfully: " + parentDir.getAbsolutePath());
+                    System.out.println("Directories created: " + parentDir.getAbsolutePath());
                 } else {
                     System.err.println("Failed to create directories: " + parentDir.getAbsolutePath());
                 }
-            } else {
-                System.out.println("Directories already exist: " + parentDir.getAbsolutePath());
             }
         }
     }
