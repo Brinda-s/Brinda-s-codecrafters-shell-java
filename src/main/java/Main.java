@@ -53,46 +53,54 @@ public class Main {
                         File file = new File(dir, command);
                         if (file.exists() && file.canExecute()) {
                             try {
-                                // Specific error handling with stderr redirection
-                                ProcessBuilder pb = new ProcessBuilder(tokens);
-                                pb.directory(new File(currentDirectory));
-                                pb.redirectErrorStream(false);
-                                
-                                Process process = pb.start();
-                                
                                 // Stdout redirection
                                 if (outputFile != null) {
                                     File outputFileObj = new File(outputFile);
                                     createParentDirectories(outputFileObj);
+                                    
+                                    ProcessBuilder pb = new ProcessBuilder(tokens);
+                                    pb.directory(new File(currentDirectory));
+                                    
                                     if (appendOutput) {
                                         pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outputFileObj));
                                     } else {
                                         pb.redirectOutput(outputFileObj);
                                     }
-                                }
-                                
-                                // Stderr redirection
-                                if (errorFile != null) {
-                                    File errorFileObj = new File(errorFile);
-                                    createParentDirectories(errorFileObj);
                                     
-                                    try (
-                                        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                                        FileWriter errorWriter = new FileWriter(errorFileObj, true)
-                                    ) {
-                                        String errorLine;
-                                        while ((errorLine = errorReader.readLine()) != null) {
-                                            errorWriter.write(errorLine + "\n");
+                                    // Stderr redirection
+                                    if (errorFile != null) {
+                                        File errorFileObj = new File(errorFile);
+                                        createParentDirectories(errorFileObj);
+                                        
+                                        Process process = pb.start();
+                                        try (
+                                            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                                            FileWriter errorWriter = new FileWriter(errorFileObj, true)
+                                        ) {
+                                            String errorLine;
+                                            while ((errorLine = errorReader.readLine()) != null) {
+                                                errorWriter.write(errorLine + "\n");
+                                            }
+                                            errorWriter.flush();
                                         }
-                                        errorWriter.flush();
+                                        process.waitFor();
+                                    } else {
+                                        pb.start().waitFor();
                                     }
+                                    
+                                    executed = true;
+                                    break;
+                                } else {
+                                    // Default execution without redirection
+                                    ProcessBuilder pb = new ProcessBuilder(tokens);
+                                    pb.directory(new File(currentDirectory));
+                                    pb.inheritIO();
+                                    pb.start().waitFor();
+                                    executed = true;
+                                    break;
                                 }
-                                
-                                process.waitFor();
-                                executed = true;
-                                break;
                             } catch (IOException | InterruptedException e) {
-                                // Ensure error is written to file if error redirection specified
+                                // Error handling
                                 if (errorFile != null) {
                                     try (PrintStream err = new PrintStream(new FileOutputStream(errorFile, true))) {
                                         err.println(e.getMessage());
