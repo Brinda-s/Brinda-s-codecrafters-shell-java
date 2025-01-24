@@ -51,7 +51,7 @@ public class Main {
                                 // Prepare ProcessBuilder
                                 ProcessBuilder pb = new ProcessBuilder(tokens);
                                 pb.directory(new File(currentDirectory));
-                                
+
                                 // Output redirection
                                 if (outputFile != null) {
                                     File outFile = new File(outputFile);
@@ -61,10 +61,11 @@ public class Main {
                                         ProcessBuilder.Redirect.to(outFile));
                                 }
 
-                                // Error redirection with explicit error handling
+                                // Handle stderr redirection with '2>>' operator
                                 if (errorFile != null) {
                                     File errFile = new File(errorFile);
                                     createParentDirectories(errFile);
+                                    pb.redirectErrorStream(false); // We will handle stderr separately
                                     
                                     // Start the process
                                     Process process = pb.start();
