@@ -83,14 +83,16 @@ public class Main {
                                     if (errorFileObj.getParentFile() != null) {
                                         errorFileObj.getParentFile().mkdirs();
                                     }
-                                    pb.redirectError(ProcessBuilder.Redirect.appendTo(errorFileObj));
+                                    
+                                    // Capture stderr to file
+                                    ProcessBuilder.Redirect redirect = ProcessBuilder.Redirect.appendTo(errorFileObj);
+                                    pb.redirectError(redirect);
                                 } else {
                                     pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                                 }
                                 
                                 Process process = pb.start();
-                                process.waitFor();
-                                
+                                int exitCode = process.waitFor();
                                 executed = true;
                                 break;
                             } catch (IOException | InterruptedException e) {
