@@ -57,13 +57,20 @@ public class Main {
                                 pb.directory(new File(currentDirectory));
                                 pb.redirectErrorStream(false);
 
+                                // Stdout redirection
+                                if (outputFile != null) {
+                                    File outputFileObj = new File(outputFile);
+                                    createParentDirectories(outputFileObj);
+                                    outputFileObj.createNewFile();
+                                }
+
                                 Process process = pb.start();
                                 
-                                // Stderr redirection handling
+                                // Stderr redirection
                                 if (errorFile != null) {
                                     File errorFileObj = new File(errorFile);
                                     createParentDirectories(errorFileObj);
-                                    errorFileObj.createNewFile(); // Ensure file exists
+                                    errorFileObj.createNewFile();
 
                                     try (
                                         BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
