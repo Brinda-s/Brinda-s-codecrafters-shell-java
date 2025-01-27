@@ -99,13 +99,18 @@ public class Main {
                             pb.directory(new File(currentDirectory));
                             Process process = pb.start();
 
+                            // Create final copies of the file paths for the lambda
+                            final String finalErrorFile = errorFile;
+                            final String finalOutputFile = outputFile;
+                            final boolean finalAppendOutput = appendOutput;
+
                             // Handle stderr first
                             Thread errorThread = new Thread(() -> {
                                 try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                                     String errorLine;
                                     while ((errorLine = errorReader.readLine()) != null) {
-                                        if (errorFile != null) {
-                                            try (FileWriter errorWriter = new FileWriter(errorFile, true)) {
+                                        if (finalErrorFile != null) {
+                                            try (FileWriter errorWriter = new FileWriter(finalErrorFile, true)) {
                                                 errorWriter.write(errorLine + "\n");
                                                 errorWriter.flush();
                                             } catch (IOException e) {
@@ -125,8 +130,8 @@ public class Main {
                             try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                                 String outputLine;
                                 while ((outputLine = outputReader.readLine()) != null) {
-                                    if (outputFile != null) {
-                                        try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
+                                    if (finalOutputFile != null) {
+                                        try (FileWriter outputWriter = new FileWriter(finalOutputFile, finalAppendOutput)) {
                                             outputWriter.write(outputLine + "\n");
                                             outputWriter.flush();
                                         }
