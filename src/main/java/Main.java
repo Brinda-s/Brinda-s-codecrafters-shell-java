@@ -33,6 +33,7 @@ public class Main {
             String outputFile = cmdLine.getOutputFile();
             String errorFile = cmdLine.getErrorFile();
             boolean appendOutput = cmdLine.isAppendOutput();
+            boolean appendError = cmdLine.isAppendError();
             
             if (tokens.isEmpty()) {
                 System.out.print("$ ");
@@ -41,102 +42,182 @@ public class Main {
 
             String command = tokens.get(0);
             boolean isBuiltin = builtins.contains(command);
+
+            // Handle builtin commands
+            if (isBuiltin) {
+                handleBuiltinCommand(command, tokens, errorFile, appendError, currentDirectory);
+                System.out.print("$ ");
+                continue;
+            }
             
             // Handle external commands
-            if (!isBuiltin) {
-                String path = System.getenv("PATH");
-                boolean executed = false;
+            String path = System.getenv("PATH");
+            boolean executed = false;
 
-                if (path != null) {
-                    String[] directories = path.split(":");
-                    for (String dir : directories) {
-                        File file = new File(dir, command);
-                        if (file.exists() && file.canExecute()) {
-                            try {
-                                ProcessBuilder pb = new ProcessBuilder(tokens);
-                                pb.directory(new File(currentDirectory));
-                                pb.redirectErrorStream(false);
+            if (path != null) {
+                String[] directories = path.split(":");
+                for (String dir : directories) {
+                    File file = new File(dir, command);
+                    if (file.exists() && file.canExecute()) {
+                        try {
+                            ProcessBuilder pb = new ProcessBuilder(tokens);
+                            pb.directory(new File(currentDirectory));
+                            pb.redirectErrorStream(false);
 
-                                Process process = pb.start();
+                            Process process = pb.start();
 
-                                // Create PrintWriter for error output
-                                PrintWriter errorWriter = null;
-                                if (errorFile != null) {
-                                    File errorFileObj = new File(errorFile);
-                                    if (errorFileObj.getParentFile() != null) {
-                                        errorFileObj.getParentFile().mkdirs();
-                                    }
-                                    errorWriter = new PrintWriter(new FileWriter(errorFile, true));
+                            // Handle stderr with append support
+                            if (errorFile != null) {
+                                File errorFileObj = new File(errorFile);
+                                if (errorFileObj.getParentFile() != null) {
+                                    errorFileObj.getParentFile().mkdirs();
                                 }
-
-                                // Handle stderr
+                                try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, appendError))) {
+                                    try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                                        String errorLine;
+                                        while ((errorLine = errorReader.readLine()) != null) {
+                                            errorWriter.println(errorLine);
+                                        }
+                                    }
+                                }
+                            } else {
+                                // If no error redirection, print to console
                                 try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                                     String errorLine;
                                     while ((errorLine = errorReader.readLine()) != null) {
-                                        if (errorWriter != null) {
-                                            errorWriter.println(errorLine);
-                                        } else {
-                                            System.err.println(errorLine);
-                                        }
+                                        System.err.println(errorLine);
                                     }
                                 }
-
-                                if (errorWriter != null) {
-                                    errorWriter.close();
-                                }
-
-                                // Handle stdout
-                                try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                                    String outputLine;
-                                    while ((outputLine = outputReader.readLine()) != null) {
-                                        if (outputFile != null) {
-                                            File outputFileObj = new File(outputFile);
-                                            if (outputFileObj.getParentFile() != null) {
-                                                outputFileObj.getParentFile().mkdirs();
-                                            }
-                                            try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
-                                                outputWriter.write(outputLine + "\n");
-                                            }
-                                        } else {
-                                            System.out.println(outputLine);
-                                        }
-                                    }
-                                }
-
-                                process.waitFor();
-                                executed = true;
-                                break;
-                            } catch (IOException e) {
-                                String errorMsg = command + ": " + e.getMessage();
-                                if (errorFile != null) {
-                                    try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, true))) {
-                                        errorWriter.println(errorMsg);
-                                    }
-                                } else {
-                                    System.err.println(errorMsg);
-                                }
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                                System.err.println(command + ": " + e.getMessage());
                             }
-                        }
-                    }
-                }
 
-                // Handle command not found
-                if (!executed) {
-                    String errorMsg = command + ": command not found";
-                    if (errorFile != null) {
-                        try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, true))) {
-                            errorWriter.println(errorMsg);
+                            // Handle stdout
+                            try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                                String outputLine;
+                                while ((outputLine = outputReader.readLine()) != null) {
+                                    if (outputFile != null) {
+                                        File outputFileObj = new File(outputFile);
+                                        if (outputFileObj.getParentFile() != null) {
+                                            outputFileObj.getParentFile().mkdirs();
+                                        }
+                                        try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
+                                            outputWriter.write(outputLine + "\n");
+                                        }
+                                    } else {
+                                        System.out.println(outputLine);
+                                    }
+                                }
+                            }
+
+                            process.waitFor();
+                            executed = true;
+                            break;
+                        } catch (IOException e) {
+                            handleCommandError(command, e.getMessage(), errorFile, appendError);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            handleCommandError(command, e.getMessage(), errorFile, appendError);
                         }
-                    } else {
-                        System.err.println(errorMsg);
                     }
                 }
+            }
+
+            // Handle command not found
+            if (!executed) {
+                handleCommandError(command, "command not found", errorFile, appendError);
             }
 
             System.out.print("$ ");
         }
     }
+
+    private static void handleBuiltinCommand(String command, List<String> tokens, String errorFile, boolean appendError, String currentDirectory) throws IOException {
+        switch (command) {
+            case "pwd":
+                System.out.println(currentDirectory);
+                break;
+            case "echo":
+                if (tokens.size() > 1) {
+                    System.out.println(String.join(" ", tokens.subList(1, tokens.size())));
+                } else {
+                    System.out.println();
+                }
+                break;
+            // Add other builtin commands as needed
+        }
+    }
+
+    private static void handleCommandError(String command, String errorMessage, String errorFile, boolean appendError) throws IOException {
+        String fullError = command + ": " + errorMessage;
+        if (errorFile != null) {
+            try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, appendError))) {
+                errorWriter.println(fullError);
+            }
+        } else {
+            System.err.println(fullError);
+        }
+    }
+}
+
+class LineParser {
+    private final String input;
+    
+    public LineParser(String input) {
+        this.input = input;
+    }
+    
+    public CommandLine parse() {
+        List<String> tokens = new ArrayList<>();
+        String outputFile = null;
+        String errorFile = null;
+        boolean appendOutput = false;
+        boolean appendError = false;
+        
+        String[] parts = input.split(" ");
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].equals("2>>")) {
+                if (i + 1 < parts.length) {
+                    errorFile = parts[i + 1];
+                    appendError = true;
+                    i++;
+                }
+            } else if (parts[i].equals(">>")) {
+                if (i + 1 < parts.length) {
+                    outputFile = parts[i + 1];
+                    appendOutput = true;
+                    i++;
+                }
+            } else if (parts[i].equals(">")) {
+                if (i + 1 < parts.length) {
+                    outputFile = parts[i + 1];
+                    i++;
+                }
+            } else {
+                tokens.add(parts[i]);
+            }
+        }
+        
+        return new CommandLine(tokens, outputFile, errorFile, appendOutput, appendError);
+    }
+}
+
+class CommandLine {
+    private final List<String> tokens;
+    private final String outputFile;
+    private final String errorFile;
+    private final boolean appendOutput;
+    private final boolean appendError;
+    
+    public CommandLine(List<String> tokens, String outputFile, String errorFile, boolean appendOutput, boolean appendError) {
+        this.tokens = tokens;
+        this.outputFile = outputFile;
+        this.errorFile = errorFile;
+        this.appendOutput = appendOutput;
+        this.appendError = appendError;
+    }
+    
+    public List<String> getTokens() { return tokens; }
+    public String getOutputFile() { return outputFile; }
+    public String getErrorFile() { return errorFile; }
+    public boolean isAppendOutput() { return appendOutput; }
+    public boolean isAppendError() { return appendError; }
 }
