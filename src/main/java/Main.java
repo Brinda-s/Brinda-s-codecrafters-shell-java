@@ -61,42 +61,26 @@ public class Main {
                 continue;
             }
 
+            // Create directories for output and error files if needed
+            if (outputFile != null) {
+                File outFile = new File(outputFile);
+                if (outFile.getParentFile() != null) {
+                    outFile.getParentFile().mkdirs();
+                }
+            }
+            if (errorFile != null) {
+                File errFile = new File(errorFile);
+                if (errFile.getParentFile() != null) {
+                    errFile.getParentFile().mkdirs();
+                }
+            }
+
             String command = tokens.get(0);
             boolean isBuiltin = builtins.contains(command);
 
             // Handle builtin commands
             if (isBuiltin) {
-                if (command.equals("echo")) {
-                    StringBuilder output = new StringBuilder();
-                    for (int i = 1; i < tokens.size(); i++) {
-                        output.append(tokens.get(i));
-                        if (i < tokens.size() - 1) {
-                            output.append(" ");
-                        }
-                    }
-                    
-                    if (outputFile != null) {
-                        try (PrintWriter writer = new PrintWriter(new FileWriter(outputFile, appendOutput))) {
-                            writer.println(output);
-                        }
-                    } else {
-                        System.out.println(output);
-                    }
-                } else if (command.equals("pwd")) {
-                    System.out.println(currentDirectory);
-                } else if (command.equals("cd")) {
-                    if (tokens.size() < 2) {
-                        System.err.println("cd: missing argument");
-                    } else {
-                        File dir = new File(tokens.get(1));
-                        if (dir.exists() && dir.isDirectory()) {
-                            currentDirectory = dir.getAbsolutePath();
-                            System.setProperty("user.dir", currentDirectory);
-                        } else {
-                            System.err.println("cd: " + tokens.get(1) + ": No such file or directory");
-                        }
-                    }
-                }
+                handleBuiltinCommand(tokens, outputFile, errorFile, appendOutput, currentDirectory);
                 System.out.print("$ ");
                 continue;
             }
@@ -113,44 +97,38 @@ public class Main {
                         try {
                             ProcessBuilder pb = new ProcessBuilder(tokens);
                             pb.directory(new File(currentDirectory));
-                            pb.redirectErrorStream(false);
-
                             Process process = pb.start();
 
-                            // Handle stderr
-                            if (errorFile != null) {
-                                File errorFileObj = new File(errorFile);
-                                if (errorFileObj.getParentFile() != null) {
-                                    errorFileObj.getParentFile().mkdirs();
-                                }
-                                try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, true))) {
-                                    try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                                        String errorLine;
-                                        while ((errorLine = errorReader.readLine()) != null) {
-                                            errorWriter.println(errorLine);
-                                        }
-                                    }
-                                }
-                            } else {
+                            // Handle stderr first
+                            Thread errorThread = new Thread(() -> {
                                 try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                                     String errorLine;
                                     while ((errorLine = errorReader.readLine()) != null) {
-                                        System.err.println(errorLine);
+                                        if (errorFile != null) {
+                                            try (FileWriter errorWriter = new FileWriter(errorFile, true)) {
+                                                errorWriter.write(errorLine + "\n");
+                                                errorWriter.flush();
+                                            } catch (IOException e) {
+                                                e.printStackTrace();
+                                            }
+                                        } else {
+                                            System.err.println(errorLine);
+                                        }
                                     }
+                                } catch (IOException e) {
+                                    e.printStackTrace();
                                 }
-                            }
+                            });
+                            errorThread.start();
 
                             // Handle stdout
                             try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                                 String outputLine;
                                 while ((outputLine = outputReader.readLine()) != null) {
                                     if (outputFile != null) {
-                                        File outputFileObj = new File(outputFile);
-                                        if (outputFileObj.getParentFile() != null) {
-                                            outputFileObj.getParentFile().mkdirs();
-                                        }
                                         try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
                                             outputWriter.write(outputLine + "\n");
+                                            outputWriter.flush();
                                         }
                                     } else {
                                         System.out.println(outputLine);
@@ -158,21 +136,20 @@ public class Main {
                                 }
                             }
 
+                            errorThread.join();
                             process.waitFor();
                             executed = true;
                             break;
-                        } catch (IOException e) {
+
+                        } catch (IOException | InterruptedException e) {
                             String errorMsg = command + ": " + e.getMessage();
                             if (errorFile != null) {
-                                try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, true))) {
-                                    errorWriter.println(errorMsg);
+                                try (FileWriter errorWriter = new FileWriter(errorFile, true)) {
+                                    errorWriter.write(errorMsg + "\n");
                                 }
                             } else {
                                 System.err.println(errorMsg);
                             }
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            System.err.println(command + ": " + e.getMessage());
                         }
                     }
                 }
@@ -182,8 +159,8 @@ public class Main {
             if (!executed) {
                 String errorMsg = command + ": command not found";
                 if (errorFile != null) {
-                    try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, true))) {
-                        errorWriter.println(errorMsg);
+                    try (FileWriter errorWriter = new FileWriter(errorFile, true)) {
+                        errorWriter.write(errorMsg + "\n");
                     }
                 } else {
                     System.err.println(errorMsg);
@@ -191,6 +168,43 @@ public class Main {
             }
 
             System.out.print("$ ");
+        }
+    }
+
+    private static void handleBuiltinCommand(List<String> tokens, String outputFile, String errorFile, boolean appendOutput, String currentDirectory) throws IOException {
+        String command = tokens.get(0);
+        switch (command) {
+            case "echo":
+                StringBuilder output = new StringBuilder();
+                for (int i = 1; i < tokens.size(); i++) {
+                    output.append(tokens.get(i));
+                    if (i < tokens.size() - 1) {
+                        output.append(" ");
+                    }
+                }
+                if (outputFile != null) {
+                    try (FileWriter writer = new FileWriter(outputFile, appendOutput)) {
+                        writer.write(output.toString() + "\n");
+                    }
+                } else {
+                    System.out.println(output);
+                }
+                break;
+            case "pwd":
+                System.out.println(currentDirectory);
+                break;
+            case "cd":
+                if (tokens.size() < 2) {
+                    System.err.println("cd: missing argument");
+                } else {
+                    File dir = new File(tokens.get(1));
+                    if (dir.exists() && dir.isDirectory()) {
+                        System.setProperty("user.dir", dir.getAbsolutePath());
+                    } else {
+                        System.err.println("cd: " + tokens.get(1) + ": No such file or directory");
+                    }
+                }
+                break;
         }
     }
 }
