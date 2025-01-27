@@ -33,6 +33,7 @@ public class Main {
             String outputFile = cmdLine.getOutputFile();
             String errorFile = cmdLine.getErrorFile();
             boolean appendOutput = cmdLine.isAppendOutput();
+            boolean appendError = cmdLine.isAppendError();
             
             if (tokens.isEmpty()) {
                 System.out.print("$ ");
@@ -57,30 +58,31 @@ public class Main {
                                 pb.directory(new File(currentDirectory));
                                 pb.redirectErrorStream(false);
 
-                                // Stdout redirection
+                                // Create parent directories if needed
+                                if (errorFile != null) {
+                                    File errorFileObj = new File(errorFile);
+                                    createParentDirectories(errorFileObj);
+                                }
                                 if (outputFile != null) {
                                     File outputFileObj = new File(outputFile);
                                     createParentDirectories(outputFileObj);
-                                    outputFileObj.createNewFile();
                                 }
 
                                 Process process = pb.start();
                                 
-                                // Stderr redirection
+                                // Handle stderr redirection
                                 if (errorFile != null) {
-                                    File errorFileObj = new File(errorFile);
-                                    createParentDirectories(errorFileObj);
-                                    errorFileObj.createNewFile();
-
                                     try (
                                         BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                                        FileWriter errorWriter = new FileWriter(errorFileObj, true)
+                                        FileWriter errorWriter = new FileWriter(errorFile, appendError)
                                     ) {
                                         String errorLine;
                                         while ((errorLine = errorReader.readLine()) != null) {
                                             errorWriter.write(errorLine + "\n");
-                                            System.err.println(errorLine);
                                         }
+                                    } catch (IOException e) {
+                                        System.err.println(command + ": " + errorFile + ": No such file or directory");
+                                        break;
                                     }
                                 } else {
                                     // Default error stream handling
@@ -88,6 +90,26 @@ public class Main {
                                         String errorLine;
                                         while ((errorLine = errorReader.readLine()) != null) {
                                             System.err.println(errorLine);
+                                        }
+                                    }
+                                }
+
+                                // Handle stdout redirection
+                                if (outputFile != null) {
+                                    try (
+                                        BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                                        FileWriter outputWriter = new FileWriter(outputFile, appendOutput)
+                                    ) {
+                                        String outputLine;
+                                        while ((outputLine = outputReader.readLine()) != null) {
+                                            outputWriter.write(outputLine + "\n");
+                                        }
+                                    }
+                                } else {
+                                    try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                                        String outputLine;
+                                        while ((outputLine = outputReader.readLine()) != null) {
+                                            System.out.println(outputLine);
                                         }
                                     }
                                 }
@@ -104,7 +126,15 @@ public class Main {
 
                 // Handle command not found
                 if (!executed) {
-                    System.err.println(command + ": command not found");
+                    if (errorFile != null) {
+                        try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                            errorWriter.write(command + ": command not found\n");
+                        } catch (IOException e) {
+                            System.err.println(command + ": " + errorFile + ": No such file or directory");
+                        }
+                    } else {
+                        System.err.println(command + ": command not found");
+                    }
                 }
             }
 
@@ -112,10 +142,10 @@ public class Main {
         }
     }
 
-    // Helper method to create parent directories
     private static void createParentDirectories(File file) {
-        if (file.getParentFile() != null) {
-            file.getParentFile().mkdirs();
+        File parentFile = file.getParentFile();
+        if (parentFile != null && !parentFile.exists()) {
+            parentFile.mkdirs();
         }
     }
 }
