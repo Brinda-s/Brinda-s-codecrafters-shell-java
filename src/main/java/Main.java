@@ -57,48 +57,27 @@ public class Main {
                                 pb.directory(new File(currentDirectory));
                                 pb.redirectErrorStream(false);
 
-                                // Create directories and file for stderr redirection
+                                Process process = pb.start();
+
+                                // Handle stderr
                                 if (errorFile != null) {
                                     try {
                                         File errorFileObj = new File(errorFile);
                                         if (errorFileObj.getParentFile() != null) {
                                             errorFileObj.getParentFile().mkdirs();
                                         }
-                                        errorFileObj.createNewFile();
+                                        try (
+                                            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                                            FileWriter errorWriter = new FileWriter(errorFile, true)
+                                        ) {
+                                            String errorLine;
+                                            while ((errorLine = errorReader.readLine()) != null) {
+                                                errorWriter.write(errorLine + "\n");
+                                            }
+                                        }
                                     } catch (IOException e) {
                                         System.err.println("ls: " + errorFile + ": No such file or directory");
-                                        System.out.print("$ ");
-                                        continue;
-                                    }
-                                }
-
-                                // Create directories and file for stdout redirection
-                                if (outputFile != null) {
-                                    try {
-                                        File outputFileObj = new File(outputFile);
-                                        if (outputFileObj.getParentFile() != null) {
-                                            outputFileObj.getParentFile().mkdirs();
-                                        }
-                                        outputFileObj.createNewFile();
-                                    } catch (IOException e) {
-                                        System.err.println(command + ": " + outputFile + ": No such file or directory");
-                                        System.out.print("$ ");
-                                        continue;
-                                    }
-                                }
-
-                                Process process = pb.start();
-
-                                // Handle stderr redirection
-                                if (errorFile != null) {
-                                    try (
-                                        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                                        FileWriter errorWriter = new FileWriter(errorFile, true)
-                                    ) {
-                                        String errorLine;
-                                        while ((errorLine = errorReader.readLine()) != null) {
-                                            errorWriter.write(errorLine + "\n");
-                                        }
+                                        break;
                                     }
                                 } else {
                                     try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
@@ -114,6 +93,10 @@ public class Main {
                                     String outputLine;
                                     while ((outputLine = outputReader.readLine()) != null) {
                                         if (outputFile != null) {
+                                            File outputFileObj = new File(outputFile);
+                                            if (outputFileObj.getParentFile() != null) {
+                                                outputFileObj.getParentFile().mkdirs();
+                                            }
                                             try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
                                                 outputWriter.write(outputLine + "\n");
                                             }
@@ -127,18 +110,13 @@ public class Main {
                                 executed = true;
                                 break;
                             } catch (IOException | InterruptedException e) {
-                                if (errorFile != null) {
-                                    try (FileWriter errorWriter = new FileWriter(errorFile, true)) {
-                                        errorWriter.write(command + ": " + e.getMessage() + "\n");
-                                    }
-                                } else {
-                                    System.err.println(command + ": " + e.getMessage());
-                                }
+                                System.err.println(command + ": " + e.getMessage());
                             }
                         }
                     }
                 }
 
+                // Handle command not found
                 if (!executed) {
                     String errorMsg = command + ": command not found";
                     if (errorFile != null) {
