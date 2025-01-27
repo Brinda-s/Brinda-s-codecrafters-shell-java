@@ -33,7 +33,6 @@ public class Main {
             String outputFile = cmdLine.getOutputFile();
             String errorFile = cmdLine.getErrorFile();
             boolean appendOutput = cmdLine.isAppendOutput();
-            boolean appendError = cmdLine.isAppendError();
             
             if (tokens.isEmpty()) {
                 System.out.print("$ ");
@@ -58,14 +57,13 @@ public class Main {
                                 pb.directory(new File(currentDirectory));
                                 pb.redirectErrorStream(false);
 
-                                // Create parent directories if needed
+                                // Create parent directories if needed for error file
                                 if (errorFile != null) {
                                     File errorFileObj = new File(errorFile);
-                                    createParentDirectories(errorFileObj);
-                                }
-                                if (outputFile != null) {
-                                    File outputFileObj = new File(outputFile);
-                                    createParentDirectories(outputFileObj);
+                                    File parentFile = errorFileObj.getParentFile();
+                                    if (parentFile != null) {
+                                        parentFile.mkdirs();
+                                    }
                                 }
 
                                 Process process = pb.start();
@@ -74,14 +72,14 @@ public class Main {
                                 if (errorFile != null) {
                                     try (
                                         BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                                        FileWriter errorWriter = new FileWriter(errorFile, appendError)
+                                        FileWriter errorWriter = new FileWriter(errorFile, true)  // Always append for 2>>
                                     ) {
                                         String errorLine;
                                         while ((errorLine = errorReader.readLine()) != null) {
                                             errorWriter.write(errorLine + "\n");
                                         }
                                     } catch (IOException e) {
-                                        System.err.println(command + ": " + errorFile + ": No such file or directory");
+                                        System.err.println("ls: " + errorFile + ": No such file or directory");
                                         break;
                                     }
                                 } else {
@@ -127,10 +125,14 @@ public class Main {
                 // Handle command not found
                 if (!executed) {
                     if (errorFile != null) {
-                        try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                        File parentFile = new File(errorFile).getParentFile();
+                        if (parentFile != null) {
+                            parentFile.mkdirs();
+                        }
+                        try (FileWriter errorWriter = new FileWriter(errorFile, true)) {  // Always append for 2>>
                             errorWriter.write(command + ": command not found\n");
                         } catch (IOException e) {
-                            System.err.println(command + ": " + errorFile + ": No such file or directory");
+                            System.err.println("ls: " + errorFile + ": No such file or directory");
                         }
                     } else {
                         System.err.println(command + ": command not found");
@@ -139,13 +141,6 @@ public class Main {
             }
 
             System.out.print("$ ");
-        }
-    }
-
-    private static void createParentDirectories(File file) {
-        File parentFile = file.getParentFile();
-        if (parentFile != null && !parentFile.exists()) {
-            parentFile.mkdirs();
         }
     }
 }
