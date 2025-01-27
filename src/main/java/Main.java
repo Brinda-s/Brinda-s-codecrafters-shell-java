@@ -59,33 +59,30 @@ public class Main {
 
                                 Process process = pb.start();
 
-                                // Handle stderr
+                                // Create PrintWriter for error output
+                                PrintWriter errorWriter = null;
                                 if (errorFile != null) {
-                                    try {
-                                        File errorFileObj = new File(errorFile);
-                                        if (errorFileObj.getParentFile() != null) {
-                                            errorFileObj.getParentFile().mkdirs();
-                                        }
-                                        try (
-                                            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                                            FileWriter errorWriter = new FileWriter(errorFile, true)
-                                        ) {
-                                            String errorLine;
-                                            while ((errorLine = errorReader.readLine()) != null) {
-                                                errorWriter.write(errorLine + "\n");
-                                            }
-                                        }
-                                    } catch (IOException e) {
-                                        System.err.println("ls: " + errorFile + ": No such file or directory");
-                                        break;
+                                    File errorFileObj = new File(errorFile);
+                                    if (errorFileObj.getParentFile() != null) {
+                                        errorFileObj.getParentFile().mkdirs();
                                     }
-                                } else {
-                                    try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                                        String errorLine;
-                                        while ((errorLine = errorReader.readLine()) != null) {
+                                    errorWriter = new PrintWriter(new FileWriter(errorFile, true));
+                                }
+
+                                // Handle stderr
+                                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                                    String errorLine;
+                                    while ((errorLine = errorReader.readLine()) != null) {
+                                        if (errorWriter != null) {
+                                            errorWriter.println(errorLine);
+                                        } else {
                                             System.err.println(errorLine);
                                         }
                                     }
+                                }
+
+                                if (errorWriter != null) {
+                                    errorWriter.close();
                                 }
 
                                 // Handle stdout
@@ -109,7 +106,17 @@ public class Main {
                                 process.waitFor();
                                 executed = true;
                                 break;
-                            } catch (IOException | InterruptedException e) {
+                            } catch (IOException e) {
+                                String errorMsg = command + ": " + e.getMessage();
+                                if (errorFile != null) {
+                                    try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, true))) {
+                                        errorWriter.println(errorMsg);
+                                    }
+                                } else {
+                                    System.err.println(errorMsg);
+                                }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
                                 System.err.println(command + ": " + e.getMessage());
                             }
                         }
@@ -120,16 +127,8 @@ public class Main {
                 if (!executed) {
                     String errorMsg = command + ": command not found";
                     if (errorFile != null) {
-                        try {
-                            File errorFileObj = new File(errorFile);
-                            if (errorFileObj.getParentFile() != null) {
-                                errorFileObj.getParentFile().mkdirs();
-                            }
-                            try (FileWriter errorWriter = new FileWriter(errorFile, true)) {
-                                errorWriter.write(errorMsg + "\n");
-                            }
-                        } catch (IOException e) {
-                            System.err.println("ls: " + errorFile + ": No such file or directory");
+                        try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, true))) {
+                            errorWriter.println(errorMsg);
                         }
                     } else {
                         System.err.println(errorMsg);
