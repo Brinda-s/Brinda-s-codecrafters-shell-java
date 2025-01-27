@@ -27,13 +27,34 @@ public class Main {
                 continue;
             }
 
-            LineParser parser = new LineParser(input);
-            CommandLine cmdLine = parser.parse();
-            List<String> tokens = cmdLine.getTokens();
-            String outputFile = cmdLine.getOutputFile();
-            String errorFile = cmdLine.getErrorFile();
-            boolean appendOutput = cmdLine.isAppendOutput();
-            boolean appendError = cmdLine.isAppendError();
+            // Parse input to extract command tokens and redirection
+            String outputFile = null;
+            String errorFile = null;
+            boolean appendOutput = false;
+            List<String> tokens = new ArrayList<>();
+            
+            String[] parts = input.split(" ");
+            for (int i = 0; i < parts.length; i++) {
+                if (parts[i].equals("2>>")) {
+                    if (i + 1 < parts.length) {
+                        errorFile = parts[i + 1];
+                        i++;
+                    }
+                } else if (parts[i].equals(">>")) {
+                    if (i + 1 < parts.length) {
+                        outputFile = parts[i + 1];
+                        appendOutput = true;
+                        i++;
+                    }
+                } else if (parts[i].equals(">")) {
+                    if (i + 1 < parts.length) {
+                        outputFile = parts[i + 1];
+                        i++;
+                    }
+                } else {
+                    tokens.add(parts[i]);
+                }
+            }
             
             if (tokens.isEmpty()) {
                 System.out.print("$ ");
@@ -45,11 +66,41 @@ public class Main {
 
             // Handle builtin commands
             if (isBuiltin) {
-                handleBuiltinCommand(command, tokens, errorFile, appendError, currentDirectory);
+                if (command.equals("echo")) {
+                    StringBuilder output = new StringBuilder();
+                    for (int i = 1; i < tokens.size(); i++) {
+                        output.append(tokens.get(i));
+                        if (i < tokens.size() - 1) {
+                            output.append(" ");
+                        }
+                    }
+                    
+                    if (outputFile != null) {
+                        try (PrintWriter writer = new PrintWriter(new FileWriter(outputFile, appendOutput))) {
+                            writer.println(output);
+                        }
+                    } else {
+                        System.out.println(output);
+                    }
+                } else if (command.equals("pwd")) {
+                    System.out.println(currentDirectory);
+                } else if (command.equals("cd")) {
+                    if (tokens.size() < 2) {
+                        System.err.println("cd: missing argument");
+                    } else {
+                        File dir = new File(tokens.get(1));
+                        if (dir.exists() && dir.isDirectory()) {
+                            currentDirectory = dir.getAbsolutePath();
+                            System.setProperty("user.dir", currentDirectory);
+                        } else {
+                            System.err.println("cd: " + tokens.get(1) + ": No such file or directory");
+                        }
+                    }
+                }
                 System.out.print("$ ");
                 continue;
             }
-            
+
             // Handle external commands
             String path = System.getenv("PATH");
             boolean executed = false;
@@ -66,13 +117,13 @@ public class Main {
 
                             Process process = pb.start();
 
-                            // Handle stderr with append support
+                            // Handle stderr
                             if (errorFile != null) {
                                 File errorFileObj = new File(errorFile);
                                 if (errorFileObj.getParentFile() != null) {
                                     errorFileObj.getParentFile().mkdirs();
                                 }
-                                try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, appendError))) {
+                                try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, true))) {
                                     try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                                         String errorLine;
                                         while ((errorLine = errorReader.readLine()) != null) {
@@ -81,7 +132,6 @@ public class Main {
                                     }
                                 }
                             } else {
-                                // If no error redirection, print to console
                                 try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                                     String errorLine;
                                     while ((errorLine = errorReader.readLine()) != null) {
@@ -112,10 +162,17 @@ public class Main {
                             executed = true;
                             break;
                         } catch (IOException e) {
-                            handleCommandError(command, e.getMessage(), errorFile, appendError);
+                            String errorMsg = command + ": " + e.getMessage();
+                            if (errorFile != null) {
+                                try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, true))) {
+                                    errorWriter.println(errorMsg);
+                                }
+                            } else {
+                                System.err.println(errorMsg);
+                            }
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
-                            handleCommandError(command, e.getMessage(), errorFile, appendError);
+                            System.err.println(command + ": " + e.getMessage());
                         }
                     }
                 }
@@ -123,101 +180,17 @@ public class Main {
 
             // Handle command not found
             if (!executed) {
-                handleCommandError(command, "command not found", errorFile, appendError);
+                String errorMsg = command + ": command not found";
+                if (errorFile != null) {
+                    try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, true))) {
+                        errorWriter.println(errorMsg);
+                    }
+                } else {
+                    System.err.println(errorMsg);
+                }
             }
 
             System.out.print("$ ");
         }
     }
-
-    private static void handleBuiltinCommand(String command, List<String> tokens, String errorFile, boolean appendError, String currentDirectory) throws IOException {
-        switch (command) {
-            case "pwd":
-                System.out.println(currentDirectory);
-                break;
-            case "echo":
-                if (tokens.size() > 1) {
-                    System.out.println(String.join(" ", tokens.subList(1, tokens.size())));
-                } else {
-                    System.out.println();
-                }
-                break;
-            // Add other builtin commands as needed
-        }
-    }
-
-    private static void handleCommandError(String command, String errorMessage, String errorFile, boolean appendError) throws IOException {
-        String fullError = command + ": " + errorMessage;
-        if (errorFile != null) {
-            try (PrintWriter errorWriter = new PrintWriter(new FileWriter(errorFile, appendError))) {
-                errorWriter.println(fullError);
-            }
-        } else {
-            System.err.println(fullError);
-        }
-    }
-}
-
-class LineParser {
-    private final String input;
-    
-    public LineParser(String input) {
-        this.input = input;
-    }
-    
-    public CommandLine parse() {
-        List<String> tokens = new ArrayList<>();
-        String outputFile = null;
-        String errorFile = null;
-        boolean appendOutput = false;
-        boolean appendError = false;
-        
-        String[] parts = input.split(" ");
-        for (int i = 0; i < parts.length; i++) {
-            if (parts[i].equals("2>>")) {
-                if (i + 1 < parts.length) {
-                    errorFile = parts[i + 1];
-                    appendError = true;
-                    i++;
-                }
-            } else if (parts[i].equals(">>")) {
-                if (i + 1 < parts.length) {
-                    outputFile = parts[i + 1];
-                    appendOutput = true;
-                    i++;
-                }
-            } else if (parts[i].equals(">")) {
-                if (i + 1 < parts.length) {
-                    outputFile = parts[i + 1];
-                    i++;
-                }
-            } else {
-                tokens.add(parts[i]);
-            }
-        }
-        
-        return new CommandLine(tokens, outputFile, errorFile, appendOutput, appendError);
-    }
-}
-
-class CommandLine {
-    private final List<String> tokens;
-    private final String outputFile;
-    private final String errorFile;
-    private final boolean appendOutput;
-    private final boolean appendError;
-    
-    public CommandLine(List<String> tokens, String outputFile, String errorFile, boolean appendOutput, boolean appendError) {
-        this.tokens = tokens;
-        this.outputFile = outputFile;
-        this.errorFile = errorFile;
-        this.appendOutput = appendOutput;
-        this.appendError = appendError;
-    }
-    
-    public List<String> getTokens() { return tokens; }
-    public String getOutputFile() { return outputFile; }
-    public String getErrorFile() { return errorFile; }
-    public boolean isAppendOutput() { return appendOutput; }
-    public boolean isAppendError() { return appendError; }
 }
