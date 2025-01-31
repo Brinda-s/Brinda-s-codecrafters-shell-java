@@ -36,14 +36,19 @@ public class Main {
 
             // Parse input preserving quoted strings
             StringBuilder currentToken = new StringBuilder();
-            boolean inQuotes = false;
+            boolean inDoubleQuotes = false;
+            boolean inSingleQuotes = false;
             for (int i = 0; i < input.length(); i++) {
                 char c = input.charAt(i);
-                if (c == '"') {
-                    inQuotes = !inQuotes;
-                    continue;  // Skip the quote character itself
+                if (c == '"' && !inSingleQuotes) {
+                    inDoubleQuotes = !inDoubleQuotes;
+                    continue;
                 }
-                if (c == ' ' && !inQuotes) {
+                if (c == '\'' && !inDoubleQuotes) {
+                    inSingleQuotes = !inSingleQuotes;
+                    continue;
+                }
+                if (c == ' ' && !inDoubleQuotes && !inSingleQuotes) {
                     if (currentToken.length() > 0) {
                         tokens.add(currentToken.toString());
                         currentToken.setLength(0);
@@ -66,7 +71,7 @@ public class Main {
                         appendError = true;
                         i++;
                     }
-                } else if (token.equals(">>")) {
+                } else if (token.equals(">>") || token.equals("1>>")) {
                     if (i + 1 < tokens.size()) {
                         outputFile = tokens.get(i + 1);
                         appendOutput = true;
