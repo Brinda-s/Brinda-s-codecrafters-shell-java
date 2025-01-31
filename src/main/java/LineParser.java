@@ -1,3 +1,4 @@
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +31,6 @@ class CommandLine {
         return appendOutput;
     }
 }
-
 class LineParser {
     public static final char SINGLE = '\'';
     public static final char DOUBLE = '"';
@@ -63,23 +63,14 @@ class LineParser {
                 if (c == SINGLE) {
                     inSingleQuotes = false;
                 } else {
-                    // Inside single quotes, everything is literal
                     currentToken.append(c);
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
-                    // Inside double quotes, only certain characters are escaped
-                    if (c == 'n') {
-                        currentToken.append('\n');
-                    } else if (c == 't') {
-                        currentToken.append('\t');
-                    } else if (c == 'r') {
-                        currentToken.append('\r');
-                    } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
+                    if (c == DOUBLE || c == ESCAPE) {
                         currentToken.append(c);
                     } else {
-                        // Keep the backslash for other characters
-                        currentToken.append('\\').append(c);
+                        currentToken.append(ESCAPE).append(c);
                     }
                     escaped = false;
                 } else if (c == ESCAPE) {
@@ -91,7 +82,7 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    // Outside quotes, preserve the literal character after backslash
+                    // Outside quotes, preserve the backslash and character literally
                     currentToken.append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
