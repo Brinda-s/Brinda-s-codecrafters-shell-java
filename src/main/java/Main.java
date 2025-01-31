@@ -66,14 +66,16 @@ public class Main {
             // Create directories for output and error files if needed
             if (outputFile != null) {
                 File outFile = new File(outputFile);
-                if (outFile.getParentFile() != null) {
-                    outFile.getParentFile().mkdirs();
+                File parentDir = outFile.getParentFile();
+                if (parentDir != null && !parentDir.exists()) {
+                    parentDir.mkdirs(); // Create parent directories if they don't exist
                 }
             }
             if (errorFile != null) {
                 File errFile = new File(errorFile);
-                if (errFile.getParentFile() != null) {
-                    errFile.getParentFile().mkdirs();
+                File parentDir = errFile.getParentFile();
+                if (parentDir != null && !parentDir.exists()) {
+                    parentDir.mkdirs(); // Create parent directories if they don't exist
                 }
             }
 
