@@ -307,49 +307,48 @@ public class Main {
             if (input.startsWith("cat ")) {
                 String filePaths = input.substring(4).trim();
                 LineParser parser = new LineParser(filePaths);
-                List<String> files = parser.parse();  // Use the new parse() method
-                StringBuilder output = new StringBuilder();
+                List<String> files = parser.parse();
                 boolean hasError = false;
                 
-                for (int i = 0; i < files.size(); i++) {
-                    String filePath = files.get(i);
+                for (String filePath : files) {
                     // Handle escaped characters in the file path
                     filePath = filePath.replace("\\n", "\n")
-                                     .replace("\\t", "\t")
-                                     .replace("\\r", "\r");
+                                      .replace("\\t", "\t")
+                                      .replace("\\r", "\r");
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
-                            String content = new String(Files.readAllBytes(file.toPath())).trim();
-                            output.append(content);
-                            
-                            // Add dot if not the last file
-                            if (i < files.size() - 1) {
-                                output.append('.');
-                            }
+                            String content = new String(Files.readAllBytes(file.toPath()));
+                            // Print content without adding dots
+                            System.out.print(content);
                         } catch (IOException e) {
-                            System.out.println("cat: " + filePath + ": Error reading file");
+                            if (errorFile != null) {
+                                try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                                    errorWriter.write("cat: " + filePath + ": Error reading file\n");
+                                } catch (IOException ignored) {}
+                            } else {
+                                System.err.println("cat: " + filePath + ": Error reading file");
+                            }
                             hasError = true;
                             break;
                         }
                     } else {
-                        System.out.println("cat: " + filePath + ": No such file or directory");
+                        if (errorFile != null) {
+                            try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                                errorWriter.write("cat: " + filePath + ": No such file or directory\n");
+                            } catch (IOException ignored) {}
+                        } else {
+                            System.err.println("cat: " + filePath + ": No such file or directory");
+                        }
                         hasError = true;
                         break;
                     }
                 }
                 
-                if (!hasError) {
-                    // Add final dot and print without newline at the end
-                    output.append('.');
-                    System.out.print(output.toString());
-                    System.out.println();  // Add a single newline at the end
-                }
-                
                 System.out.print("$ ");
                 continue;
             }
-            
+
 
             if (!executed) {
                 String errorMsg = command + ": command not found";
