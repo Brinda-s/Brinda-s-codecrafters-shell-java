@@ -24,7 +24,8 @@ public class Main {
                 String partialCommand = parts[0].trim();
                 String completedCommand = autocomplete(partialCommand);
                 if (completedCommand != null) {
-                    System.out.print("$ " + completedCommand);
+                    // Print only the completed command without the prompt
+                    System.out.print(completedCommand);
                     continue;
                 }
             }
