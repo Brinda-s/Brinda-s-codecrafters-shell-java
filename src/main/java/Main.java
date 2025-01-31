@@ -1,40 +1,178 @@
 import java.io.*;
 import java.util.*;
 
-public class Main {
-    private static String processEchoToken(String token) {
-        StringBuilder result = new StringBuilder();
+class LineParser {
+    public static final char SINGLE = '\'';
+    public static final char DOUBLE = '"';
+    public static final char ESCAPE = '\\';
+    
+    private final String input;
+    private int index;
+    
+    public LineParser(String input) {
+        this.input = input;
+        this.index = 0;
+    }
+    
+    public CommandLine parse() {
+        List<String> tokens = new ArrayList<>();
+        String outputFile = null;
+        String errorFile = null;
+        boolean appendOutput = false;
+        StringBuilder currentToken = new StringBuilder();
+        boolean inSingleQuotes = false;
+        boolean inDoubleQuotes = false;
         boolean escaped = false;
+        boolean foundRedirect = false;
+        boolean isErrorRedirect = false;
         
-        for (int i = 0; i < token.length(); i++) {
-            char c = token.charAt(i);
+        while (index < input.length()) {
+            char c = input.charAt(index);
             
-            if (escaped) {
-                if (c != ' ' && c != '"' && c != '\'' && c != '\\') {
-                    // For non-special characters, just append the character
-                    result.append(c);
+            if (inSingleQuotes) {
+                if (c == SINGLE) {
+                    inSingleQuotes = false;
                 } else {
-                    // For special characters, preserve the escape
-                    result.append(c);
+                    currentToken.append(c);
                 }
-                escaped = false;
-                continue;
+            } else if (inDoubleQuotes) {
+                if (escaped) {
+                    if (c == DOUBLE || c == ESCAPE) {
+                        currentToken.append(c);
+                    } else {
+                        currentToken.append(ESCAPE).append(c);
+                    }
+                    escaped = false;
+                } else if (c == ESCAPE) {
+                    escaped = true;
+                } else if (c == DOUBLE) {
+                    inDoubleQuotes = false;
+                } else {
+                    currentToken.append(c);
+                }
+            } else {
+                if (escaped) {
+                    currentToken.append(c);
+                    escaped = false;
+                } else if (c == ESCAPE) {
+                    escaped = true;
+                    currentToken.append(ESCAPE);
+                } else if (c == SINGLE) {
+                    inSingleQuotes = true;
+                } else if (c == DOUBLE) {
+                    inDoubleQuotes = true;
+                } else if (c == '1' && index + 2 < input.length() && 
+                         input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
+                    if (currentToken.length() > 0) {
+                        tokens.add(currentToken.toString());
+                        currentToken.setLength(0);
+                    }
+                    foundRedirect = true;
+                    isErrorRedirect = false;
+                    appendOutput = true;
+                    index += 2;
+                } else if (c == '2' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
+                    if (currentToken.length() > 0) {
+                        tokens.add(currentToken.toString());
+                        currentToken.setLength(0);
+                    }
+                    foundRedirect = true;
+                    isErrorRedirect = true;
+                    index++;
+                } else if (c == '>' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
+                    if (currentToken.length() > 0) {
+                        tokens.add(currentToken.toString());
+                        currentToken.setLength(0);
+                    }
+                    foundRedirect = true;
+                    isErrorRedirect = false;
+                    appendOutput = true;
+                    index++;
+                } else if (c == '>' && !foundRedirect) {
+                    if (currentToken.length() > 0) {
+                        if (currentToken.toString().equals("1")) {
+                            currentToken.setLength(0);
+                        } else {
+                            tokens.add(currentToken.toString());
+                            currentToken.setLength(0);
+                        }
+                    }
+                    foundRedirect = true;
+                    isErrorRedirect = false;
+                } else if (Character.isWhitespace(c)) {
+                    if (currentToken.length() > 0) {
+                        if (foundRedirect) {
+                            if (isErrorRedirect) {
+                                errorFile = currentToken.toString();
+                            } else {
+                                outputFile = currentToken.toString();
+                            }
+                            currentToken.setLength(0);
+                            foundRedirect = false;
+                        } else {
+                            tokens.add(currentToken.toString());
+                            currentToken.setLength(0);
+                        }
+                    }
+                } else {
+                    currentToken.append(c);
+                }
             }
             
-            if (c == '\\') {
-                escaped = true;
-                continue;
-            }
-            
-            result.append(c);
+            index++;
         }
         
-        return result.toString();
+        // Handle any remaining token
+        if (currentToken.length() > 0) {
+            if (foundRedirect) {
+                if (isErrorRedirect) {
+                    errorFile = currentToken.toString();
+                } else {
+                    outputFile = currentToken.toString();
+                }
+            } else {
+                tokens.add(currentToken.toString());
+            }
+        }
+        
+        return new CommandLine(tokens, outputFile, errorFile, appendOutput);
     }
+}
 
+class CommandLine {
+    private final List<String> tokens;
+    private final String outputFile;
+    private final String errorFile;
+    private final boolean appendOutput;
+    
+    public CommandLine(List<String> tokens, String outputFile, String errorFile, boolean appendOutput) {
+        this.tokens = tokens;
+        this.outputFile = outputFile;
+        this.errorFile = errorFile;
+        this.appendOutput = appendOutput;
+    }
+    
+    public List<String> getTokens() {
+        return tokens;
+    }
+    
+    public String getOutputFile() {
+        return outputFile;
+    }
+    
+    public String getErrorFile() {
+        return errorFile;
+    }
+    
+    public boolean isAppendOutput() {
+        return appendOutput;
+    }
+}
+
+public class Main {
     public static void main(String[] args) throws Exception {
         System.out.print("$ ");
-
+        
         Scanner scanner = new Scanner(System.in);
         Set<String> builtins = new HashSet<>();
         builtins.add("echo");
@@ -57,103 +195,14 @@ public class Main {
                 continue;
             }
 
-            String outputFile = null;
-            String errorFile = null;
-            boolean appendOutput = false;
-            boolean appendError = false;
-            List<String> tokens = new ArrayList<>();
-
-            StringBuilder currentToken = new StringBuilder();
-            boolean inDoubleQuotes = false;
-            boolean inSingleQuotes = false;
-            boolean escaped = false;
-
-            for (int i = 0; i < input.length(); i++) {
-                char c = input.charAt(i);
-
-                if (escaped) {
-                    if (inDoubleQuotes) {
-                        if (c == 'n') {
-                            currentToken.append('\n');
-                        } else if (c == 't') {
-                            currentToken.append('\t');
-                        } else if (c == 'r') {
-                            currentToken.append('\r');
-                        } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
-                            currentToken.append(c);
-                        } else {
-                            currentToken.append('\\').append(c);
-                        }
-                    } else if (inSingleQuotes) {
-                        currentToken.append('\\').append(c);
-                    } else {
-                        // Outside quotes, preserve backslashes for all escaped characters
-                        currentToken.append('\\').append(c);
-                    }
-                    escaped = false;
-                    continue;
-                }
-
-                if (c == '\\' && !inSingleQuotes) {
-                    escaped = true;
-                    continue;
-                }
-
-                if (c == '"' && !inSingleQuotes) {
-                    inDoubleQuotes = !inDoubleQuotes;
-                    continue;
-                }
-
-                if (c == '\'' && !inDoubleQuotes) {
-                    inSingleQuotes = !inSingleQuotes;
-                    continue;
-                }
-
-                if (c == ' ' && !inDoubleQuotes && !inSingleQuotes) {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
-                } else {
-                    currentToken.append(c);
-                }
-            }
-
-            if (currentToken.length() > 0) {
-                tokens.add(currentToken.toString());
-            }
-
-            List<String> commandTokens = new ArrayList<>();
-            for (int i = 0; i < tokens.size(); i++) {
-                String token = tokens.get(i);
-                if (token.equals("2>")) {
-                    if (i + 1 < tokens.size()) {
-                        errorFile = tokens.get(i + 1);
-                        appendError = false;
-                        i++;
-                    }
-                } else if (token.equals("2>>")) {
-                    if (i + 1 < tokens.size()) {
-                        errorFile = tokens.get(i + 1);
-                        appendError = true;
-                        i++;
-                    }
-                } else if (token.equals(">>") || token.equals("1>>")) {
-                    if (i + 1 < tokens.size()) {
-                        outputFile = tokens.get(i + 1);
-                        appendOutput = true;
-                        i++;
-                    }
-                } else if (token.equals(">") || token.equals("1>")) {
-                    if (i + 1 < tokens.size()) {
-                        outputFile = tokens.get(i + 1);
-                        appendOutput = false;
-                        i++;
-                    }
-                } else {
-                    commandTokens.add(token);
-                }
-            }
+            LineParser parser = new LineParser(input);
+            CommandLine cmdLine = parser.parse();
+            
+            List<String> commandTokens = cmdLine.getTokens();
+            String outputFile = cmdLine.getOutputFile();
+            String errorFile = cmdLine.getErrorFile();
+            boolean appendOutput = cmdLine.isAppendOutput();
+            boolean appendError = false;  // Default value for error redirection
 
             if (commandTokens.isEmpty()) {
                 System.out.print("$ ");
@@ -163,11 +212,55 @@ public class Main {
             String command = commandTokens.get(0);
             boolean isBuiltin = builtins.contains(command);
 
+            // Create directories for redirection files before executing commands
+            if (errorFile != null) {
+                File errorFileObj = new File(errorFile);
+                File parentDir = errorFileObj.getParentFile();
+                if (parentDir != null && !parentDir.exists()) {
+                    if (!parentDir.mkdirs()) {
+                        System.err.println(command + ": " + errorFile + ": No such file or directory");
+                        System.out.print("$ ");
+                        continue;
+                    }
+                }
+                if (!errorFileObj.exists()) {
+                    try {
+                        errorFileObj.createNewFile();
+                    } catch (IOException e) {
+                        System.err.println(command + ": " + errorFile + ": No such file or directory");
+                        System.out.print("$ ");
+                        continue;
+                    }
+                }
+            }
+
+            if (outputFile != null) {
+                File outputFileObj = new File(outputFile);
+                File parentDir = outputFileObj.getParentFile();
+                if (parentDir != null && !parentDir.exists()) {
+                    if (!parentDir.mkdirs()) {
+                        System.err.println(command + ": " + outputFile + ": No such file or directory");
+                        System.out.print("$ ");
+                        continue;
+                    }
+                }
+                if (!outputFileObj.exists()) {
+                    try {
+                        outputFileObj.createNewFile();
+                    } catch (IOException e) {
+                        System.err.println(command + ": " + outputFile + ": No such file or directory");
+                        System.out.print("$ ");
+                        continue;
+                    }
+                }
+            }
+
+            // Handle builtin commands
             if (isBuiltin) {
                 if (command.equals("echo")) {
                     StringBuilder output = new StringBuilder();
                     for (int i = 1; i < commandTokens.size(); i++) {
-                        output.append(processEchoToken(commandTokens.get(i)));
+                        output.append(commandTokens.get(i));
                         if (i < commandTokens.size() - 1) {
                             output.append(" ");
                         }
@@ -193,6 +286,7 @@ public class Main {
                 continue;
             }
 
+            // Handle external commands
             String path = System.getenv("PATH");
             boolean executed = false;
 
@@ -208,6 +302,7 @@ public class Main {
 
                             Process process = pb.start();
 
+                            // Handle stderr redirection
                             if (errorFile != null) {
                                 try (
                                     BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
@@ -227,6 +322,7 @@ public class Main {
                                 }
                             }
 
+                            // Handle stdout
                             try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                                 String outputLine;
                                 List<String> outputLines = new ArrayList<>();
