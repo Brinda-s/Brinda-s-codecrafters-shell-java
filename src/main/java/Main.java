@@ -142,37 +142,13 @@ public class Main {
                 continue;
             }
 
-            String command = commandTokens.get(0);
-            boolean isBuiltin = builtins.contains(command);
-
-            // Create directories for redirection files before executing commands
-            if (errorFile != null) {
-                File errorFileObj = new File(errorFile);
-                File parentDir = errorFileObj.getParentFile();
-                if (parentDir != null && !parentDir.exists()) {
-                    if (!parentDir.mkdirs()) {
-                        System.err.println(command + ": " + errorFile + ": No such file or directory");
-                        System.out.print("$ ");
-                        continue;
-                    }
-                }
-                if (!errorFileObj.exists()) {
-                    try {
-                        errorFileObj.createNewFile();
-                    } catch (IOException e) {
-                        System.err.println(command + ": " + errorFile + ": No such file or directory");
-                        System.out.print("$ ");
-                        continue;
-                    }
-                }
-            }
-
+            // Prepare output and error files
             if (outputFile != null) {
                 File outputFileObj = new File(outputFile);
                 File parentDir = outputFileObj.getParentFile();
                 if (parentDir != null && !parentDir.exists()) {
                     if (!parentDir.mkdirs()) {
-                        System.err.println(command + ": " + outputFile + ": No such file or directory");
+                        System.err.println("Cannot create output directory");
                         System.out.print("$ ");
                         continue;
                     }
@@ -181,12 +157,36 @@ public class Main {
                     try {
                         outputFileObj.createNewFile();
                     } catch (IOException e) {
-                        System.err.println(command + ": " + outputFile + ": No such file or directory");
+                        System.err.println("Cannot create output file");
                         System.out.print("$ ");
                         continue;
                     }
                 }
             }
+
+            if (errorFile != null) {
+                File errorFileObj = new File(errorFile);
+                File parentDir = errorFileObj.getParentFile();
+                if (parentDir != null && !parentDir.exists()) {
+                    if (!parentDir.mkdirs()) {
+                        System.err.println("Cannot create error directory");
+                        System.out.print("$ ");
+                        continue;
+                    }
+                }
+                if (!errorFileObj.exists()) {
+                    try {
+                        errorFileObj.createNewFile();
+                    } catch (IOException e) {
+                        System.err.println("Cannot create error file");
+                        System.out.print("$ ");
+                        continue;
+                    }
+                }
+            }
+
+            String command = commandTokens.get(0);
+            boolean isBuiltin = builtins.contains(command);
 
             // Handle builtin commands
             if (isBuiltin) {
@@ -231,23 +231,24 @@ public class Main {
                         try {
                             // Create copy of command tokens with properly escaped arguments
                             List<String> escapedTokens = new ArrayList<>();
-                            escapedTokens.add(command);
+                            escapedTokens.add(file.getAbsolutePath());
                             for (int i = 1; i < commandTokens.size(); i++) {
-                                String token = commandTokens.get(i);
-                                // Preserve backslash escapes in the token
-                                escapedTokens.add(token);
+                                escapedTokens.add(commandTokens.get(i));
                             }
 
                             ProcessBuilder pb = new ProcessBuilder(escapedTokens);
                             pb.directory(new File(currentDirectory));
+
+                            // Separate error stream
                             pb.redirectErrorStream(false);
 
-                            Process process = pb.start();
+                            // Start the process
+                            Process currentProcess = pb.start();
 
-                            // Handle stderr redirection
+                            // Capture stderr
                             if (errorFile != null) {
                                 try (
-                                    BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                                    BufferedReader errorReader = new BufferedReader(new InputStreamReader(currentProcess.getErrorStream()));
                                     FileWriter errorWriter = new FileWriter(errorFile, appendError)
                                 ) {
                                     String errorLine;
@@ -256,7 +257,7 @@ public class Main {
                                     }
                                 }
                             } else {
-                                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(currentProcess.getErrorStream()))) {
                                     String errorLine;
                                     while ((errorLine = errorReader.readLine()) != null) {
                                         System.err.println(errorLine);
@@ -264,29 +265,29 @@ public class Main {
                                 }
                             }
 
-                            // Handle stdout
-                            try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                                String outputLine;
-                                List<String> outputLines = new ArrayList<>();
-
-                                while ((outputLine = outputReader.readLine()) != null) {
-                                    outputLines.add(outputLine);
-                                }
-
-                                if (outputFile != null) {
-                                    try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
-                                        for (String line : outputLines) {
-                                            outputWriter.write(line + "\n");
-                                        }
+                            // Capture stdout
+                            if (outputFile != null) {
+                                try (
+                                    BufferedReader outputReader = new BufferedReader(new InputStreamReader(currentProcess.getInputStream()));
+                                    FileWriter outputWriter = new FileWriter(outputFile, appendOutput)
+                                ) {
+                                    String outputLine;
+                                    while ((outputLine = outputReader.readLine()) != null) {
+                                        outputWriter.write(outputLine + "\n");
                                     }
-                                } else {
-                                    for (String line : outputLines) {
-                                        System.out.println(line);
+                                }
+                            } else {
+                                try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(currentProcess.getInputStream()))) {
+                                    String outputLine;
+                                    while ((outputLine = outputReader.readLine()) != null) {
+                                        System.out.println(outputLine);
                                     }
                                 }
                             }
 
-                            process.waitFor();
+                            // Wait for process to complete
+                            currentProcess.waitFor();
+
                             executed = true;
                             break;
                         } catch (IOException | InterruptedException e) {
@@ -303,7 +304,7 @@ public class Main {
                 }
             }
 
-
+            // Handle cat command separately
             if (input.startsWith("cat ")) {
                 String filePaths = input.substring(4).trim();
                 LineParser parser = new LineParser(filePaths);
@@ -318,38 +319,34 @@ public class Main {
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
                         try {
-                            String content = new String(Files.readAllBytes(file.toPath()));
-                            // Print content without adding dots
-                            System.out.print(content);
-                        } catch (IOException e) {
-                            if (errorFile != null) {
-                                try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                    errorWriter.write("cat: " + filePath + ": Error reading file\n");
-                                } catch (IOException ignored) {}
-                            } else {
-                                System.err.println("cat: " + filePath + ": Error reading file");
+                            List<String> lines = Files.readAllLines(file.toPath());
+                            for (int i = 0; i < lines.size(); i++) {
+                                System.out.print(lines.get(i));
+                                // Only add newline if not the last line
+                                if (i < lines.size() - 1) {
+                                    System.out.println();
+                                }
                             }
+                        } catch (IOException e) {
+                            System.err.println("cat: " + filePath + ": Error reading file");
                             hasError = true;
                             break;
                         }
                     } else {
-                        if (errorFile != null) {
-                            try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                errorWriter.write("cat: " + filePath + ": No such file or directory\n");
-                            } catch (IOException ignored) {}
-                        } else {
-                            System.err.println("cat: " + filePath + ": No such file or directory");
-                        }
+                        System.err.println("cat: " + filePath + ": No such file or directory");
                         hasError = true;
                         break;
                     }
                 }
                 
+                if (!hasError) {
+                    System.out.println();
+                }
                 System.out.print("$ ");
                 continue;
             }
 
-
+            // Handle command not found
             if (!executed) {
                 String errorMsg = command + ": command not found";
                 if (errorFile != null) {
