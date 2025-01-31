@@ -1,3 +1,4 @@
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +20,6 @@ class LineParser {
         String outputFile = null;
         String errorFile = null;
         boolean appendOutput = false;
-        boolean appendError = false;
         StringBuilder currentToken = new StringBuilder();
         boolean inSingleQuotes = false;
         boolean inDoubleQuotes = false;
@@ -38,8 +38,7 @@ class LineParser {
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
-                    // Inside double quotes, only specific characters should be escaped
-                    if (c == DOUBLE || c == ESCAPE || c == '$' || c == '`') {
+                    if (c == DOUBLE || c == ESCAPE) {
                         currentToken.append(c);
                     } else {
                         currentToken.append(ESCAPE).append(c);
@@ -54,6 +53,7 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
+                    // Outside quotes, preserve the backslash and character literally
                     currentToken.append(ESCAPE).append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
@@ -62,15 +62,15 @@ class LineParser {
                     inSingleQuotes = true;
                 } else if (c == DOUBLE) {
                     inDoubleQuotes = true;
-                } else if (c == '2' && index + 2 < input.length() && 
+                } else if (c == '1' && index + 2 < input.length() && 
                          input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
                     if (currentToken.length() > 0) {
                         tokens.add(currentToken.toString());
                         currentToken.setLength(0);
                     }
                     foundRedirect = true;
-                    isErrorRedirect = true;
-                    appendError = true;
+                    isErrorRedirect = false;
+                    appendOutput = true;
                     index += 2;
                 } else if (c == '2' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
                     if (currentToken.length() > 0) {
@@ -91,8 +91,7 @@ class LineParser {
                     index++;
                 } else if (c == '>' && !foundRedirect) {
                     if (currentToken.length() > 0) {
-                        if (currentToken.toString().equals("1") || currentToken.toString().equals("2")) {
-                            isErrorRedirect = currentToken.toString().equals("2");
+                        if (currentToken.toString().equals("1")) {
                             currentToken.setLength(0);
                         } else {
                             tokens.add(currentToken.toString());
@@ -100,6 +99,7 @@ class LineParser {
                         }
                     }
                     foundRedirect = true;
+                    isErrorRedirect = false;
                 } else if (Character.isWhitespace(c)) {
                     if (currentToken.length() > 0) {
                         if (foundRedirect) {
@@ -136,7 +136,7 @@ class LineParser {
             }
         }
         
-        return new CommandLine(tokens, outputFile, errorFile, appendOutput, appendError);
+        return new CommandLine(tokens, outputFile, errorFile, appendOutput);
     }
 }
 
@@ -145,14 +145,12 @@ class CommandLine {
     private final String outputFile;
     private final String errorFile;
     private final boolean appendOutput;
-    private final boolean appendError;
     
-    public CommandLine(List<String> tokens, String outputFile, String errorFile, boolean appendOutput, boolean appendError) {
+    public CommandLine(List<String> tokens, String outputFile, String errorFile, boolean appendOutput) {
         this.tokens = tokens;
         this.outputFile = outputFile;
         this.errorFile = errorFile;
         this.appendOutput = appendOutput;
-        this.appendError = appendError;
     }
     
     public List<String> getTokens() {
@@ -169,9 +167,5 @@ class CommandLine {
     
     public boolean isAppendOutput() {
         return appendOutput;
-    }
-    
-    public boolean isAppendError() {
-        return appendError;
     }
 }
