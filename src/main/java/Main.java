@@ -39,10 +39,10 @@ public class Main {
             boolean inDoubleQuotes = false;
             boolean inSingleQuotes = false;
             boolean escaped = false;
-            
+
             for (int i = 0; i < input.length(); i++) {
                 char c = input.charAt(i);
-                
+
                 if (escaped) {
                     if (inDoubleQuotes) {
                         // In double quotes, only certain characters are escaped
@@ -58,8 +58,11 @@ public class Main {
                             // Keep the backslash for other characters
                             currentToken.append('\\').append(c);
                         }
+                    } else if (inSingleQuotes) {
+                        // In single quotes, backslashes are treated literally
+                        currentToken.append('\\').append(c);
                     } else {
-                        // Outside quotes, escape everything
+                        // Outside quotes, escape the next character
                         currentToken.append(c);
                     }
                     escaped = false;
@@ -75,7 +78,7 @@ public class Main {
                     inDoubleQuotes = !inDoubleQuotes;
                     continue;
                 }
-                
+
                 if (c == '\'' && !inDoubleQuotes) {
                     inSingleQuotes = !inSingleQuotes;
                     continue;
@@ -189,7 +192,7 @@ public class Main {
                             output.append(" ");
                         }
                     }
-                    
+
                     if (outputFile != null) {
                         try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
                             outputWriter.write(output.toString() + "\n");
@@ -250,11 +253,11 @@ public class Main {
                             try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                                 String outputLine;
                                 List<String> outputLines = new ArrayList<>();
-                                
+
                                 while ((outputLine = outputReader.readLine()) != null) {
                                     outputLines.add(outputLine);
                                 }
-                                
+
                                 if (outputFile != null) {
                                     try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
                                         for (String line : outputLines) {
