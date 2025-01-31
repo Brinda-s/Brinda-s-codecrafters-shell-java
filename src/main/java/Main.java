@@ -34,20 +34,53 @@ public class Main {
             boolean appendError = false;
             List<String> tokens = new ArrayList<>();
 
-            // Parse input preserving quoted strings
+            // Parse input preserving quoted strings with proper escape handling
             StringBuilder currentToken = new StringBuilder();
             boolean inDoubleQuotes = false;
             boolean inSingleQuotes = false;
+            boolean escaped = false;
+            
             for (int i = 0; i < input.length(); i++) {
                 char c = input.charAt(i);
+                
+                if (escaped) {
+                    if (inDoubleQuotes) {
+                        // In double quotes, only certain characters are escaped
+                        if (c == 'n') {
+                            currentToken.append('\n');
+                        } else if (c == 't') {
+                            currentToken.append('\t');
+                        } else if (c == 'r') {
+                            currentToken.append('\r');
+                        } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
+                            currentToken.append(c);
+                        } else {
+                            // Keep the backslash for other characters
+                            currentToken.append('\\').append(c);
+                        }
+                    } else {
+                        // Outside quotes, escape everything
+                        currentToken.append(c);
+                    }
+                    escaped = false;
+                    continue;
+                }
+
+                if (c == '\\' && !inSingleQuotes) {
+                    escaped = true;
+                    continue;
+                }
+
                 if (c == '"' && !inSingleQuotes) {
                     inDoubleQuotes = !inDoubleQuotes;
                     continue;
                 }
+                
                 if (c == '\'' && !inDoubleQuotes) {
                     inSingleQuotes = !inSingleQuotes;
                     continue;
                 }
+
                 if (c == ' ' && !inDoubleQuotes && !inSingleQuotes) {
                     if (currentToken.length() > 0) {
                         tokens.add(currentToken.toString());
@@ -57,6 +90,7 @@ public class Main {
                     currentToken.append(c);
                 }
             }
+
             if (currentToken.length() > 0) {
                 tokens.add(currentToken.toString());
             }
@@ -217,12 +251,10 @@ public class Main {
                                 String outputLine;
                                 List<String> outputLines = new ArrayList<>();
                                 
-                                // Collect all output lines first
                                 while ((outputLine = outputReader.readLine()) != null) {
                                     outputLines.add(outputLine);
                                 }
                                 
-                                // Write the output
                                 if (outputFile != null) {
                                     try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
                                         for (String line : outputLines) {
