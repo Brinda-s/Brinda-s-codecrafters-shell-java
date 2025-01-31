@@ -1,4 +1,3 @@
-
 import java.io.*;
 import java.util.*;
 
@@ -104,6 +103,13 @@ public class Main {
                 tokens.add(currentToken.toString());
             }
 
+            // Ensure balanced quotes
+            if (inDoubleQuotes || inSingleQuotes) {
+                System.err.println("Error: Unmatched quotes in input.");
+                System.out.print("$ ");
+                continue;
+            }
+
             // Process redirection operators
             List<String> commandTokens = new ArrayList<>();
             for (int i = 0; i < tokens.size(); i++) {
@@ -144,6 +150,21 @@ public class Main {
 
             String command = commandTokens.get(0);
             boolean isBuiltin = builtins.contains(command);
+
+            // Handle 'cd' command
+            if (command.equals("cd")) {
+                if (commandTokens.size() > 1) {
+                    File newDir = new File(commandTokens.get(1));
+                    if (newDir.isDirectory()) {
+                        currentDirectory = newDir.getAbsolutePath();
+                        System.setProperty("user.dir", currentDirectory);
+                    } else {
+                        System.err.println("cd: " + commandTokens.get(1) + ": No such directory");
+                    }
+                }
+                System.out.print("$ ");
+                continue;
+            }
 
             // Create directories for redirection files before executing commands
             if (errorFile != null) {
@@ -224,7 +245,7 @@ public class Main {
             boolean executed = false;
 
             if (path != null) {
-                String[] directories = path.split(":");
+                String[] directories = path.split(File.pathSeparator);
                 for (String dir : directories) {
                     File file = new File(dir, command);
                     if (file.exists() && file.canExecute()) {
