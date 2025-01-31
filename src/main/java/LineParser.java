@@ -104,12 +104,8 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    // Outside quotes, preserve both characters for special cases
-                    if (c == ' ' || c == '"' || c == '\'' || c == '\\') {
-                        currentToken.append(c);
-                    } else {
-                        currentToken.append(ESCAPE).append(c);
-                    }
+                    // Outside quotes, preserve the literal character after backslash
+                    currentToken.append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
                     escaped = true;
