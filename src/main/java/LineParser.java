@@ -94,16 +94,12 @@ class LineParser {
                 if (escaped) {
                     // Improved backslash handling for paths and special characters
                     if (c == 'n') {
-                        currentToken.append(c);
+                        currentToken.append('\n');
                     } else if (c == 't') {
-                        currentToken.append(c);
+                        currentToken.append('\t');
                     } else if (c == 'r') {
-                        currentToken.append(c);
-                    } else if(c =='\\'){
-                        currentToken.append(ESCAPE).append(c);
-                    }
-                    
-                    else if (c == ' ' || c == '"' || c == '\'' || c == '\\' || 
+                        currentToken.append('\r');
+                    } else if (c == ' ' || c == '"' || c == '\'' || c == '\\' || 
                                Character.isLetterOrDigit(c) || c == '/' || c == '.' || 
                                c == '_' || c == '-') {
                         currentToken.append(c);
