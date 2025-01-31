@@ -34,50 +34,69 @@ public class Main {
             boolean appendError = false;
             List<String> tokens = new ArrayList<>();
 
-            String[] parts = input.split(" ");
-            for (int i = 0; i < parts.length; i++) {
-                if (parts[i].equals("2>>")) {
-                    if (i + 1 < parts.length) {
-                        errorFile = parts[i + 1];
+            // Parse input preserving quoted strings
+            StringBuilder currentToken = new StringBuilder();
+            boolean inQuotes = false;
+            for (int i = 0; i < input.length(); i++) {
+                char c = input.charAt(i);
+                if (c == '"') {
+                    inQuotes = !inQuotes;
+                    continue;  // Skip the quote character itself
+                }
+                if (c == ' ' && !inQuotes) {
+                    if (currentToken.length() > 0) {
+                        tokens.add(currentToken.toString());
+                        currentToken.setLength(0);
+                    }
+                } else {
+                    currentToken.append(c);
+                }
+            }
+            if (currentToken.length() > 0) {
+                tokens.add(currentToken.toString());
+            }
+
+            // Process redirection operators
+            List<String> commandTokens = new ArrayList<>();
+            for (int i = 0; i < tokens.size(); i++) {
+                String token = tokens.get(i);
+                if (token.equals("2>>")) {
+                    if (i + 1 < tokens.size()) {
+                        errorFile = tokens.get(i + 1);
                         appendError = true;
                         i++;
                     }
-                } else if (parts[i].equals(">>")) {
-                    if (i + 1 < parts.length) {
-                        outputFile = parts[i + 1];
+                } else if (token.equals(">>")) {
+                    if (i + 1 < tokens.size()) {
+                        outputFile = tokens.get(i + 1);
                         appendOutput = true;
                         i++;
                     }
-                } else if (parts[i].equals(">")) {
-                    if (i + 1 < parts.length) {
-                        outputFile = parts[i + 1];
+                } else if (token.equals(">")) {
+                    if (i + 1 < tokens.size()) {
+                        outputFile = tokens.get(i + 1);
                         i++;
                     }
                 } else {
-                    tokens.add(parts[i]);
+                    commandTokens.add(token);
                 }
             }
 
-            if (tokens.isEmpty()) {
+            if (commandTokens.isEmpty()) {
                 System.out.print("$ ");
                 continue;
             }
 
-            String command = tokens.get(0);
+            String command = commandTokens.get(0);
             boolean isBuiltin = builtins.contains(command);
 
             // Handle builtin commands
             if (isBuiltin) {
                 if (command.equals("echo")) {
                     StringBuilder output = new StringBuilder();
-                    for (int i = 1; i < tokens.size(); i++) {
-                        String token = tokens.get(i);
-                        // Remove surrounding quotes if present
-                        if (token.startsWith("\"") && token.endsWith("\"")) {
-                            token = token.substring(1, token.length() - 1);
-                        }
-                        output.append(token);
-                        if (i < tokens.size() - 1) {
+                    for (int i = 1; i < commandTokens.size(); i++) {
+                        output.append(commandTokens.get(i));
+                        if (i < commandTokens.size() - 1) {
                             output.append(" ");
                         }
                     }
@@ -117,7 +136,7 @@ public class Main {
                     File file = new File(dir, command);
                     if (file.exists() && file.canExecute()) {
                         try {
-                            ProcessBuilder pb = new ProcessBuilder(tokens);
+                            ProcessBuilder pb = new ProcessBuilder(commandTokens);
                             pb.directory(new File(currentDirectory));
                             pb.redirectErrorStream(false);
 
