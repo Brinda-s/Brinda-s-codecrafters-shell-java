@@ -71,13 +71,17 @@ public class Main {
                 if (command.equals("echo")) {
                     StringBuilder output = new StringBuilder();
                     for (int i = 1; i < tokens.size(); i++) {
-                        output.append(tokens.get(i));
+                        String token = tokens.get(i);
+                        // Remove surrounding quotes if present
+                        if (token.startsWith("\"") && token.endsWith("\"")) {
+                            token = token.substring(1, token.length() - 1);
+                        }
+                        output.append(token);
                         if (i < tokens.size() - 1) {
                             output.append(" ");
                         }
                     }
                     
-                    // Echo should write to standard output, not error output
                     if (outputFile != null) {
                         try {
                             File outputFileObj = new File(outputFile);
