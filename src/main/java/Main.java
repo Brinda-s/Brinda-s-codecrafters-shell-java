@@ -76,22 +76,24 @@ public class Main {
                             output.append(" ");
                         }
                     }
-                    if (errorFile != null) {
+                    
+                    // Echo should write to standard output, not error output
+                    if (outputFile != null) {
                         try {
-                            File errorFileObj = new File(errorFile);
-                            File parentDir = errorFileObj.getParentFile();
+                            File outputFileObj = new File(outputFile);
+                            File parentDir = outputFileObj.getParentFile();
                             if (parentDir != null && !parentDir.exists()) {
                                 if (!parentDir.mkdirs()) {
-                                    System.err.println("echo: " + errorFile + ": No such file or directory");
+                                    System.err.println("echo: " + outputFile + ": No such file or directory");
                                     System.out.print("$ ");
                                     continue;
                                 }
                             }
-                            try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                errorWriter.write(output.toString() + "\n");
+                            try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
+                                outputWriter.write(output.toString() + "\n");
                             }
                         } catch (IOException e) {
-                            System.err.println("echo: " + errorFile + ": No such file or directory");
+                            System.err.println("echo: " + outputFile + ": No such file or directory");
                         }
                     } else {
                         System.out.println(output);
