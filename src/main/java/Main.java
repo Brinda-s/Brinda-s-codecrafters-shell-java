@@ -68,14 +68,18 @@ public class Main {
                 File outFile = new File(outputFile);
                 File parentDir = outFile.getParentFile();
                 if (parentDir != null && !parentDir.exists()) {
-                    parentDir.mkdirs(); // Create parent directories if they don't exist
+                    if (!parentDir.mkdirs()) {
+                        System.err.println("Failed to create directory: " + parentDir.getAbsolutePath());
+                    }
                 }
             }
             if (errorFile != null) {
                 File errFile = new File(errorFile);
                 File parentDir = errFile.getParentFile();
                 if (parentDir != null && !parentDir.exists()) {
-                    parentDir.mkdirs(); // Create parent directories if they don't exist
+                    if (!parentDir.mkdirs()) {
+                        System.err.println("Failed to create directory: " + parentDir.getAbsolutePath());
+                    }
                 }
             }
 
