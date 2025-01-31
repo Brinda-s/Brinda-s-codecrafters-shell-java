@@ -62,8 +62,13 @@ public class Main {
                         // In single quotes, backslashes are treated literally
                         currentToken.append('\\').append(c);
                     } else {
-                        // Outside quotes, treat escaped characters literally
-                        currentToken.append(c);
+                        // Outside quotes, preserve backslash for special characters
+                        if (c == ' ' || c == '"' || c == '\'' || c == '\\') {
+                            currentToken.append(c);
+                        } else {
+                            // For non-special characters, just append the character
+                            currentToken.append(c);
+                        }
                     }
                     escaped = false;
                     continue;
@@ -98,7 +103,6 @@ public class Main {
                 tokens.add(currentToken.toString());
             }
 
-            // Rest of the code remains the same...
             // Process redirection operators
             List<String> commandTokens = new ArrayList<>();
             for (int i = 0; i < tokens.size(); i++) {
@@ -224,7 +228,16 @@ public class Main {
                     File file = new File(dir, command);
                     if (file.exists() && file.canExecute()) {
                         try {
-                            ProcessBuilder pb = new ProcessBuilder(commandTokens);
+                            // Create copy of command tokens with properly escaped arguments
+                            List<String> escapedTokens = new ArrayList<>();
+                            escapedTokens.add(command);
+                            for (int i = 1; i < commandTokens.size(); i++) {
+                                String token = commandTokens.get(i);
+                                // Preserve backslash escapes in the token
+                                escapedTokens.add(token);
+                            }
+
+                            ProcessBuilder pb = new ProcessBuilder(escapedTokens);
                             pb.directory(new File(currentDirectory));
                             pb.redirectErrorStream(false);
 
