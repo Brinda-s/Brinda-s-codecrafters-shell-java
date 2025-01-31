@@ -72,20 +72,13 @@ class LineParser {
                 if (c == SINGLE) {
                     inSingleQuotes = false;
                 } else {
-                    // Inside single quotes, everything is literal, including backslashes
                     currentToken.append(c);
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
-                    // In double quotes, only certain characters are escaped
-                    if (c == 'n') {
-                        currentToken.append('\n');
-                    } else if (c == 't') {
-                        currentToken.append('\t');
-                    } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
+                    if (c == '"' || c == '\\' || c == '$' || c == '`') {
                         currentToken.append(c);
                     } else {
-                        // Keep both backslash and character for other cases
                         currentToken.append(ESCAPE).append(c);
                     }
                     escaped = false;
@@ -98,7 +91,6 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    // Outside quotes, handle escape sequences
                     if (c == 'n') {
                         currentToken.append('\n');
                     } else if (c == 't') {
@@ -108,7 +100,6 @@ class LineParser {
                     } else if (c == '"' || c == '\'' || c == '\\') {
                         currentToken.append(c);
                     } else {
-                        // For other characters, treat the backslash as a literal character
                         currentToken.append(ESCAPE).append(c);
                     }
                     escaped = false;
@@ -187,7 +178,6 @@ class LineParser {
             index++;
         }
         
-        // Handle any remaining token
         if (currentToken.length() > 0) {
             if (foundRedirect) {
                 if (isErrorRedirect) {
