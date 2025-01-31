@@ -52,7 +52,8 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    currentToken.append(c);
+                    // Outside quotes, preserve the backslash and character literally
+                    currentToken.append(ESCAPE).append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
                     escaped = true;
@@ -69,7 +70,7 @@ class LineParser {
                     foundRedirect = true;
                     isErrorRedirect = false;
                     appendOutput = true;
-                    index += 2; // Skip the following '>>' characters
+                    index += 2;
                 } else if (c == '2' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
                     if (currentToken.length() > 0) {
                         tokens.add(currentToken.toString());
@@ -77,7 +78,7 @@ class LineParser {
                     }
                     foundRedirect = true;
                     isErrorRedirect = true;
-                    index++; // Skip the following '>' character
+                    index++;
                 } else if (c == '>' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
                     if (currentToken.length() > 0) {
                         tokens.add(currentToken.toString());
@@ -86,7 +87,7 @@ class LineParser {
                     foundRedirect = true;
                     isErrorRedirect = false;
                     appendOutput = true;
-                    index++; // Skip the second '>' character
+                    index++;
                 } else if (c == '>' && !foundRedirect) {
                     if (currentToken.length() > 0) {
                         if (currentToken.toString().equals("1")) {
