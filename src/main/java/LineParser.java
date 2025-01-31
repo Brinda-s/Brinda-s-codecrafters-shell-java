@@ -1,6 +1,36 @@
 import java.util.ArrayList;
 import java.util.List;
 
+class CommandLine {
+    private final List<String> tokens;
+    private final String outputFile;
+    private final String errorFile;
+    private final boolean appendOutput;
+
+    public CommandLine(List<String> tokens, String outputFile, String errorFile, boolean appendOutput) {
+        this.tokens = tokens;
+        this.outputFile = outputFile;
+        this.errorFile = errorFile;
+        this.appendOutput = appendOutput;
+    }
+
+    public List<String> getTokens() {
+        return tokens;
+    }
+
+    public String getOutputFile() {
+        return outputFile;
+    }
+
+    public String getErrorFile() {
+        return errorFile;
+    }
+
+    public boolean isAppendOutput() {
+        return appendOutput;
+    }
+}
+
 class LineParser {
     public static final char SINGLE = '\'';
     public static final char DOUBLE = '"';
@@ -33,14 +63,23 @@ class LineParser {
                 if (c == SINGLE) {
                     inSingleQuotes = false;
                 } else {
+                    // Inside single quotes, everything is literal
                     currentToken.append(c);
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
-                    if (c == DOUBLE || c == ESCAPE) {
+                    // Inside double quotes, only certain characters are escaped
+                    if (c == 'n') {
+                        currentToken.append('\n');
+                    } else if (c == 't') {
+                        currentToken.append('\t');
+                    } else if (c == 'r') {
+                        currentToken.append('\r');
+                    } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
                         currentToken.append(c);
                     } else {
-                        currentToken.append(ESCAPE).append(c);
+                        // Keep the backslash for other characters
+                        currentToken.append('\\').append(c);
                     }
                     escaped = false;
                 } else if (c == ESCAPE) {
@@ -52,8 +91,7 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    // Outside quotes, just append the character that was escaped
-                    // This ensures \n becomes 'n', \t becomes 't', etc.
+                    // Outside quotes, preserve the literal character after backslash
                     currentToken.append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
@@ -138,35 +176,4 @@ class LineParser {
         
         return new CommandLine(tokens, outputFile, errorFile, appendOutput);
     }
-
-    public class CommandLine {
-        private final List<String> tokens;
-        private final String outputFile;
-        private final String errorFile;
-        private final boolean appendOutput;
-    
-        public CommandLine(List<String> tokens, String outputFile, String errorFile, boolean appendOutput) {
-            this.tokens = tokens;
-            this.outputFile = outputFile;
-            this.errorFile = errorFile;
-            this.appendOutput = appendOutput;
-        }
-    
-        public List<String> getTokens() {
-            return tokens;
-        }
-    
-        public String getOutputFile() {
-            return outputFile;
-        }
-    
-        public String getErrorFile() {
-            return errorFile;
-        }
-    
-        public boolean isAppendOutput() {
-            return appendOutput;
-        }
-    }
-    
 }
