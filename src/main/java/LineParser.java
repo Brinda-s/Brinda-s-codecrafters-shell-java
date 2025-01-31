@@ -84,15 +84,8 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    if (c == 'n' || c == 't' || c == 'r') {
-                        currentToken.append(c == 'n' ? '\n' : c == 't' ? '\t' : '\r');
-                    } else if (c == ' ' || c == '"' || c == '\'' || c == '\\' || 
-                               Character.isLetterOrDigit(c) || c == '/' || c == '.' || 
-                               c == '_' || c == '-') {
-                        currentToken.append(c);
-                    } else {
-                        currentToken.append(ESCAPE).append(c);
-                    }
+                    // Preserve ALL escaped characters exactly
+                    currentToken.append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
                     escaped = true;
