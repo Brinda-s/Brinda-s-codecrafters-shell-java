@@ -74,10 +74,19 @@ public class Main {
                     continue;
                 }
 
-                if (c == '\\' && !inSingleQuotes) {
-                    escaped = true;
+                if (c == '\\') {
+                    if (inSingleQuotes) {
+                        // In single quotes, treat backslashes literally
+                        currentToken.append(c);
+                    } else if (inDoubleQuotes) {
+                        escaped = true;
+                    } else {
+                        // Outside quotes, preserve backslash
+                        currentToken.append(c);
+                    }
                     continue;
                 }
+                
 
                 if (c == '"' && !inSingleQuotes) {
                     inDoubleQuotes = !inDoubleQuotes;

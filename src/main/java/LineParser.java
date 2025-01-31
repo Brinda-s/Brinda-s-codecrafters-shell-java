@@ -86,9 +86,13 @@ class LineParser {
                     currentToken.append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
-                    currentToken.append(c);
-                    escaped = true;
-                } else if (c == SINGLE) {
+                    if (inDoubleQuotes || inSingleQuotes) {
+                        escaped = true;
+                    } else {
+                        currentToken.append(c);
+                    }
+                }
+                 else if (c == SINGLE) {
                     inSingleQuotes = true;
                 } else if (c == DOUBLE) {
                     inDoubleQuotes = true;
