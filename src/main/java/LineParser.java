@@ -85,11 +85,7 @@ class LineParser {
             } else {
                 if (escaped) {
                     if (c == 'n' || c == 't' || c == 'r') {
-                        if (foundRedirect) {
-                            currentToken.append('\\').append(c);  // Preserve as `\n`, `\t`, etc.
-                        } else {
-                            currentToken.append(c == 'n' ? '\n' : c == 't' ? '\t' : '\r');
-                        }
+                        currentToken.append(c == 'n' ? '\n' : c == 't' ? '\t' : '\r');
                     } else if (c == ' ' || c == '"' || c == '\'' || c == '\\' || 
                                Character.isLetterOrDigit(c) || c == '/' || c == '.' || 
                                c == '_' || c == '-') {
