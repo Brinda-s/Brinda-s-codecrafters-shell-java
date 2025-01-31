@@ -98,8 +98,19 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    // Outside quotes, preserve both backslash and character
-                    currentToken.append(ESCAPE).append(c);
+                    // Outside quotes, handle escape sequences
+                    if (c == 'n') {
+                        currentToken.append('\n');
+                    } else if (c == 't') {
+                        currentToken.append('\t');
+                    } else if (c == 'r') {
+                        currentToken.append('\r');
+                    } else if (c == '"' || c == '\'' || c == '\\') {
+                        currentToken.append(c);
+                    } else {
+                        // For other characters, treat the backslash as a literal character
+                        currentToken.append(ESCAPE).append(c);
+                    }
                     escaped = false;
                 } else if (c == ESCAPE) {
                     escaped = true;
