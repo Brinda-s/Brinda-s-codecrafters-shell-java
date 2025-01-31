@@ -2,80 +2,6 @@ import java.io.*;
 import java.util.*;
 
 public class Main {
-    private static List<String> parseInputPreservingPaths(String input) {
-        List<String> tokens = new ArrayList<>();
-        StringBuilder currentToken = new StringBuilder();
-        boolean inDoubleQuotes = false;
-        boolean inSingleQuotes = false;
-        boolean escaped = false;
-        
-        for (int i = 0; i < input.length(); i++) {
-            char c = input.charAt(i);
-            
-            if (escaped) {
-                if (inDoubleQuotes) {
-                    // In double quotes, only certain characters are escaped
-                    if (c == 'n') {
-                        currentToken.append('\n');
-                    } else if (c == 't') {
-                        currentToken.append('\t');
-                    } else if (c == 'r') {
-                        currentToken.append('\r');
-                    } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
-                        currentToken.append(c);
-                    } else {
-                        currentToken.append('\\').append(c);
-                    }
-                } else {
-                    // Outside quotes, preserve the backslash for path components
-                    currentToken.append(c);
-                }
-                escaped = false;
-                continue;
-            }
-
-            if (c == '\\' && !inSingleQuotes) {
-                if (!inDoubleQuotes) {
-                    // Check if next character is a space
-                    if (i + 1 < input.length() && input.charAt(i + 1) == ' ') {
-                        // For escaped spaces, don't include the backslash
-                        escaped = true;
-                        continue;
-                    }
-                    // For other characters outside quotes, preserve the backslash
-                    currentToken.append('\\');
-                }
-                escaped = true;
-                continue;
-            }
-
-            if (c == '"' && !inSingleQuotes) {
-                inDoubleQuotes = !inDoubleQuotes;
-                continue;
-            }
-            
-            if (c == '\'' && !inDoubleQuotes) {
-                inSingleQuotes = !inSingleQuotes;
-                continue;
-            }
-
-            if (c == ' ' && !inDoubleQuotes && !inSingleQuotes) {
-                if (currentToken.length() > 0) {
-                    tokens.add(currentToken.toString());
-                    currentToken.setLength(0);
-                }
-            } else {
-                currentToken.append(c);
-            }
-        }
-
-        if (currentToken.length() > 0) {
-            tokens.add(currentToken.toString());
-        }
-
-        return tokens;
-    }
-
     public static void main(String[] args) throws Exception {
         System.out.print("$ ");
 
@@ -106,8 +32,68 @@ public class Main {
             String errorFile = null;
             boolean appendOutput = false;
             boolean appendError = false;
+            List<String> tokens = new ArrayList<>();
 
-            List<String> tokens = parseInputPreservingPaths(input);
+            // Parse input preserving quoted strings with proper escape handling
+            StringBuilder currentToken = new StringBuilder();
+            boolean inDoubleQuotes = false;
+            boolean inSingleQuotes = false;
+            boolean escaped = false;
+            
+            for (int i = 0; i < input.length(); i++) {
+                char c = input.charAt(i);
+                
+                if (escaped) {
+                    if (inDoubleQuotes) {
+                        // In double quotes, only certain characters are escaped
+                        if (c == 'n') {
+                            currentToken.append('\n');
+                        } else if (c == 't') {
+                            currentToken.append('\t');
+                        } else if (c == 'r') {
+                            currentToken.append('\r');
+                        } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
+                            currentToken.append(c);
+                        } else {
+                            // Keep the backslash for other characters
+                            currentToken.append('\\').append(c);
+                        }
+                    } else {
+                        // Outside quotes, escape everything
+                        currentToken.append(c);
+                    }
+                    escaped = false;
+                    continue;
+                }
+
+                if (c == '\\' && !inSingleQuotes) {
+                    escaped = true;
+                    continue;
+                }
+
+                if (c == '"' && !inSingleQuotes) {
+                    inDoubleQuotes = !inDoubleQuotes;
+                    continue;
+                }
+                
+                if (c == '\'' && !inDoubleQuotes) {
+                    inSingleQuotes = !inSingleQuotes;
+                    continue;
+                }
+
+                if (c == ' ' && !inDoubleQuotes && !inSingleQuotes) {
+                    if (currentToken.length() > 0) {
+                        tokens.add(currentToken.toString());
+                        currentToken.setLength(0);
+                    }
+                } else {
+                    currentToken.append(c);
+                }
+            }
+
+            if (currentToken.length() > 0) {
+                tokens.add(currentToken.toString());
+            }
 
             // Process redirection operators
             List<String> commandTokens = new ArrayList<>();
