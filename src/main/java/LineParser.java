@@ -38,7 +38,8 @@ class LineParser {
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
-                    if (c == DOUBLE || c == ESCAPE) {
+                    // Inside double quotes, only specific characters should be escaped
+                    if (c == DOUBLE || c == ESCAPE || c == '$' || c == '`') {
                         currentToken.append(c);
                     } else {
                         currentToken.append(ESCAPE).append(c);
@@ -79,16 +80,6 @@ class LineParser {
                     foundRedirect = true;
                     isErrorRedirect = true;
                     index++;
-                } else if (c == '1' && index + 2 < input.length() && 
-                         input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
-                    foundRedirect = true;
-                    isErrorRedirect = false;
-                    appendOutput = true;
-                    index += 2;
                 } else if (c == '>' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
                     if (currentToken.length() > 0) {
                         tokens.add(currentToken.toString());
