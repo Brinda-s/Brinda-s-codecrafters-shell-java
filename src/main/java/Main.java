@@ -16,17 +16,21 @@ public class Main {
         String currentDirectory = System.getProperty("user.dir");
 
         while (true) {
-            String input = scanner.nextLine().trim();
+            String input = scanner.nextLine();
 
-            // Simulate autocompletion for "echo" and "exit"
-            if (input.endsWith("\t")) { // Check if the input ends with a TAB character
-                String partialCommand = input.substring(0, input.length() - 1).trim(); // Remove the TAB character
-                String completedCommand = autocomplete(partialCommand); // Autocomplete the command
+            // Handle tab completion before trimming the input
+            if (input.contains("\t")) {
+                String[] parts = input.split("\t", 2);
+                String partialCommand = parts[0].trim();
+                String completedCommand = autocomplete(partialCommand);
                 if (completedCommand != null) {
-                    System.out.println("$ " + completedCommand); // Display the completed command
-                    input = completedCommand; // Use the completed command
+                    System.out.print("$ " + completedCommand);
+                    continue;
                 }
             }
+            
+            // Now trim the input for normal command processing
+            input = input.trim();
 
             if (input.equals("exit 0")) {
                 System.exit(0);
