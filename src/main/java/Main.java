@@ -50,20 +50,18 @@ public class Main {
                                 ProcessBuilder pb = new ProcessBuilder(tokens);
                                 pb.directory(new File(currentDirectory));
 
-                                // Ensure stderr redirection file is created
+                                // Ensure stderr file exists
                                 if (errorFile != null) {
                                     File errorFileObj = new File(errorFile);
                                     ensureFileExists(errorFileObj);
-                                    pb.redirectError(errorFileObj);
-                                } else {
-                                    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                                    pb.redirectError(ProcessBuilder.Redirect.appendTo(errorFileObj));
                                 }
 
-                                // Ensure stdout redirection file is created
+                                // Ensure stdout file exists
                                 if (outputFile != null) {
                                     File outputFileObj = new File(outputFile);
                                     ensureFileExists(outputFileObj);
-                                    pb.redirectOutput(outputFileObj);
+                                    pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outputFileObj));
                                 }
 
                                 Process process = pb.start();
