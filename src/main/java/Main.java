@@ -3,9 +3,12 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        System.out.print("$ ");
+        Console console = System.console();
+        if (console == null) {
+            System.err.println("No console available");
+            return;
+        }
 
-        Scanner scanner = new Scanner(System.in);
         Set<String> builtins = new HashSet<>();
         builtins.add("echo");
         builtins.add("exit");
@@ -14,16 +17,46 @@ public class Main {
         builtins.add("cd");
 
         String currentDirectory = System.getProperty("user.dir");
+        StringBuilder currentInput = new StringBuilder();
 
         while (true) {
-            String input = scanner.nextLine().trim();
+            System.out.print("$ ");
+            
+            // Read character by character to handle special keys
+            int ch;
+            currentInput.setLength(0);
+            
+            try {
+                while ((ch = System.in.read()) != -1) {
+                    if (ch == '\n') {
+                        break;
+                    } else if (ch == 9) { // Tab key
+                        // Handle tab completion
+                        String partial = currentInput.toString().trim();
+                        String completed = handleTabCompletion(partial, builtins);
+                        
+                        if (completed != null && !completed.equals(partial)) {
+                            // Clear the current line and print the completed command
+                            System.out.print("\r$ " + completed + " ");
+                            currentInput = new StringBuilder(completed + " ");
+                        }
+                        continue;
+                    }
+                    
+                    currentInput.append((char) ch);
+                }
+            } catch (IOException e) {
+                System.err.println("Error reading input: " + e.getMessage());
+                continue;
+            }
+
+            String input = currentInput.toString().trim();
 
             if (input.equals("exit 0")) {
                 System.exit(0);
             }
 
             if (input.isEmpty()) {
-                System.out.print("$ ");
                 continue;
             }
 
@@ -37,7 +70,6 @@ public class Main {
             boolean appendError = cmdLine.isAppendError();
 
             if (tokens.isEmpty()) {
-                System.out.print("$ ");
                 continue;
             }
 
@@ -51,7 +83,6 @@ public class Main {
                 if (parentDir != null && !parentDir.exists()) {
                     if (!parentDir.mkdirs()) {
                         System.err.println(command + ": " + errorFile + ": No such file or directory");
-                        System.out.print("$ ");
                         continue;
                     }
                 }
@@ -61,7 +92,6 @@ public class Main {
                     }
                 } catch (IOException e) {
                     System.err.println(command + ": " + errorFile + ": No such file or directory");
-                    System.out.print("$ ");
                     continue;
                 }
             }
@@ -72,7 +102,6 @@ public class Main {
                 if (parentDir != null && !parentDir.exists()) {
                     if (!parentDir.mkdirs()) {
                         System.err.println(command + ": " + outputFile + ": No such file or directory");
-                        System.out.print("$ ");
                         continue;
                     }
                 }
@@ -82,7 +111,6 @@ public class Main {
                     }
                 } catch (IOException e) {
                     System.err.println(command + ": " + outputFile + ": No such file or directory");
-                    System.out.print("$ ");
                     continue;
                 }
             }
@@ -145,7 +173,6 @@ public class Main {
                                 } else {
                                     System.err.println(errorMsg);
                                 }
-                                System.out.print("$ ");
                                 continue;
                             }
                             targetDirectory = homeDirectory + targetDirectory.substring(1);
@@ -321,8 +348,21 @@ public class Main {
                     }
                 }
             }
-
-            System.out.print("$ ");
         }
+    }
+
+    private static String handleTabCompletion(String partial, Set<String> builtins) {
+        if (partial.isEmpty()) {
+            return null;
+        }
+
+        // For now, we only complete builtin commands
+        for (String builtin : builtins) {
+            if (builtin.startsWith(partial)) {
+                return builtin;
+            }
+        }
+
+        return null;
     }
 }
