@@ -72,14 +72,8 @@ class LineParser {
                 if (c == SINGLE) {
                     inSingleQuotes = false;
                 } else {
-                    if (escaped) {
-                        // In single quotes, backslashes are treated literally
-                        currentToken.append(ESCAPE);
-                        currentToken.append(c);
-                        escaped = false;
-                    } else {
-                        currentToken.append(c);
-                    }
+                    // Inside single quotes, everything is literal, including backslashes
+                    currentToken.append(c);
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
@@ -91,7 +85,7 @@ class LineParser {
                     } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
                         currentToken.append(c);
                     } else {
-                        // Preserve the backslash and character for other cases
+                        // Keep both backslash and character for other cases
                         currentToken.append(ESCAPE).append(c);
                     }
                     escaped = false;
@@ -104,8 +98,8 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    // Outside quotes, preserve the literal character after backslash
-                    currentToken.append(c);
+                    // Outside quotes, preserve both backslash and character
+                    currentToken.append(ESCAPE).append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
                     escaped = true;
