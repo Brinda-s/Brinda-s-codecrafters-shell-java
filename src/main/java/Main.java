@@ -1,4 +1,5 @@
 import java.io.*;
+import java.nio.file.Files;
 import java.util.*;
 
 public class Main {
@@ -301,6 +302,54 @@ public class Main {
                     }
                 }
             }
+
+
+            if (input.startsWith("cat ")) {
+                String filePaths = input.substring(4).trim();
+                LineParser parser = new LineParser(filePaths);
+                List<String> files = parser.parse();  // Use the new parse() method
+                StringBuilder output = new StringBuilder();
+                boolean hasError = false;
+                
+                for (int i = 0; i < files.size(); i++) {
+                    String filePath = files.get(i);
+                    // Handle escaped characters in the file path
+                    filePath = filePath.replace("\\n", "\n")
+                                     .replace("\\t", "\t")
+                                     .replace("\\r", "\r");
+                    File file = new File(filePath);
+                    if (file.exists() && file.isFile()) {
+                        try {
+                            String content = new String(Files.readAllBytes(file.toPath())).trim();
+                            output.append(content);
+                            
+                            // Add dot if not the last file
+                            if (i < files.size() - 1) {
+                                output.append('.');
+                            }
+                        } catch (IOException e) {
+                            System.out.println("cat: " + filePath + ": Error reading file");
+                            hasError = true;
+                            break;
+                        }
+                    } else {
+                        System.out.println("cat: " + filePath + ": No such file or directory");
+                        hasError = true;
+                        break;
+                    }
+                }
+                
+                if (!hasError) {
+                    // Add final dot and print without newline at the end
+                    output.append('.');
+                    System.out.print(output.toString());
+                    System.out.println();  // Add a single newline at the end
+                }
+                
+                System.out.print("$ ");
+                continue;
+            }
+            
 
             if (!executed) {
                 String errorMsg = command + ": command not found";

@@ -52,7 +52,47 @@ class LineParser {
         this.index = 0;
     }
     
-    public CommandLine parse() {
+    // For cat command and other simple parsing needs
+    public List<String> parse() {
+        List<String> tokens = new ArrayList<>();
+        StringBuilder currentToken = new StringBuilder();
+        boolean inSingleQuotes = false;
+        boolean inDoubleQuotes = false;
+        boolean escaped = false;
+        
+        while (index < input.length()) {
+            char c = input.charAt(index);
+            
+            if (escaped) {
+                currentToken.append(ESCAPE).append(c);
+                escaped = false;
+            } else if (c == ESCAPE) {
+                escaped = true;
+            } else if (c == SINGLE && !inDoubleQuotes) {
+                inSingleQuotes = !inSingleQuotes;
+            } else if (c == DOUBLE && !inSingleQuotes) {
+                inDoubleQuotes = !inDoubleQuotes;
+            } else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
+                if (currentToken.length() > 0) {
+                    tokens.add(currentToken.toString());
+                    currentToken.setLength(0);
+                }
+            } else {
+                currentToken.append(c);
+            }
+            
+            index++;
+        }
+        
+        if (currentToken.length() > 0) {
+            tokens.add(currentToken.toString());
+        }
+        
+        return tokens;
+    }
+    
+    // For command parsing with redirections
+    public CommandLine parseCommand() {
         List<String> tokens = new ArrayList<>();
         String outputFile = null;
         String errorFile = null;
@@ -91,17 +131,7 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    if (c == 'n') {
-                        currentToken.append('\n');
-                    } else if (c == 't') {
-                        currentToken.append('\t');
-                    } else if (c == 'r') {
-                        currentToken.append('\r');
-                    } else if (c == '"' || c == '\'' || c == '\\') {
-                        currentToken.append(c);
-                    } else {
-                        currentToken.append(ESCAPE).append(c);
-                    }
+                    currentToken.append(ESCAPE).append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
                     escaped = true;
@@ -127,16 +157,6 @@ class LineParser {
                     foundRedirect = true;
                     isErrorRedirect = true;
                     index++;
-                } else if (c == '1' && index + 2 < input.length() && 
-                         input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
-                    foundRedirect = true;
-                    isErrorRedirect = false;
-                    appendOutput = true;
-                    index += 2;
                 } else if (c == '>' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
                     if (currentToken.length() > 0) {
                         tokens.add(currentToken.toString());
@@ -146,15 +166,13 @@ class LineParser {
                     isErrorRedirect = false;
                     appendOutput = true;
                     index++;
-                } else if (c == '>' || (c == '1' && index + 1 < input.length() && 
-                         input.charAt(index + 1) == '>')) {
+                } else if (c == '>') {
                     if (currentToken.length() > 0) {
                         tokens.add(currentToken.toString());
                         currentToken.setLength(0);
                     }
                     foundRedirect = true;
                     isErrorRedirect = false;
-                    if (c == '1') index++;
                 } else if (Character.isWhitespace(c)) {
                     if (currentToken.length() > 0) {
                         if (foundRedirect) {
