@@ -1,3 +1,4 @@
+// Main.java
 import java.io.*;
 import java.util.*;
 
@@ -31,12 +32,13 @@ public class Main {
                         String completed = handleTabCompletion(partial, builtins);
                         
                         if (completed != null && !completed.equals(partial)) {
-                            // Clear the current line
+                            // Clear the current line and move cursor to start
                             System.out.print("\r");
                             // Print prompt and completed command
                             System.out.print("$ " + completed + " ");
                             System.out.flush();
-                            currentInput = new StringBuilder(completed + " ");
+                            currentInput.setLength(0);
+                            currentInput.append(completed).append(" ");
                         }
                         continue;
                     }
