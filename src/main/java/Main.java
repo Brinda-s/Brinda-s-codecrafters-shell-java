@@ -1,3 +1,4 @@
+
 import java.io.*;
 import java.util.*;
 
@@ -27,52 +28,142 @@ public class Main {
                 continue;
             }
 
+            // Parse input to extract command tokens and redirection
+            String outputFile = null;
+            String errorFile = null;
+            boolean appendOutput = false;
+            boolean appendError = false;
+            List<String> tokens = new ArrayList<>();
+
             // Parse input preserving quoted strings with proper escape handling
-            LineParser lineParser = new LineParser(input);
-            CommandLine commandLine = lineParser.parse();
+            StringBuilder currentToken = new StringBuilder();
+            boolean inDoubleQuotes = false;
+            boolean inSingleQuotes = false;
+            boolean escaped = false;
 
-            List<String> tokens = commandLine.getTokens();
-            String outputFile = processFilename(commandLine.getOutputFile());
-            String errorFile = processFilename(commandLine.getErrorFile());
-            boolean appendOutput = commandLine.isAppendOutput();
-            boolean appendError = commandLine.isAppendError();
+            for (int i = 0; i < input.length(); i++) {
+                char c = input.charAt(i);
 
-            if (tokens.isEmpty()) {
+                if (escaped) {
+                    if (inDoubleQuotes) {
+                        // In double quotes, only certain characters are escaped
+                        if (c == 'n') {
+                            currentToken.append('\n');
+                        } else if (c == 't') {
+                            currentToken.append('\t');
+                        } else if (c == 'r') {
+                            currentToken.append('\r');
+                        } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
+                            currentToken.append(c);
+                        } else {
+                            // Keep the backslash for other characters
+                            currentToken.append('\\').append(c);
+                        }
+                    } else if (inSingleQuotes) {
+                        // In single quotes, backslashes are treated literally
+                        currentToken.append('\\').append(c);
+                    } else {
+                        // Outside quotes, preserve backslash for special characters
+                        if (c == ' ' || c == '"' || c == '\'' || c == '\\') {
+                            currentToken.append(c);
+                        } else {
+                            // For non-special characters, just append the character
+                            currentToken.append(c);
+                        }
+                    }
+                    escaped = false;
+                    continue;
+                }
+
+                if (c == '\\' && !inSingleQuotes) {
+                    escaped = true;
+                    continue;
+                }
+
+                if (c == '"' && !inSingleQuotes) {
+                    inDoubleQuotes = !inDoubleQuotes;
+                    continue;
+                }
+
+                if (c == '\'' && !inDoubleQuotes) {
+                    inSingleQuotes = !inSingleQuotes;
+                    continue;
+                }
+
+                if (c == ' ' && !inDoubleQuotes && !inSingleQuotes) {
+                    if (currentToken.length() > 0) {
+                        tokens.add(currentToken.toString());
+                        currentToken.setLength(0);
+                    }
+                } else {
+                    currentToken.append(c);
+                }
+            }
+
+            if (currentToken.length() > 0) {
+                tokens.add(currentToken.toString());
+            }
+
+            // Process redirection operators
+            List<String> commandTokens = new ArrayList<>();
+            for (int i = 0; i < tokens.size(); i++) {
+                String token = tokens.get(i);
+                if (token.equals("2>")) {
+                    if (i + 1 < tokens.size()) {
+                        errorFile = tokens.get(i + 1);
+                        appendError = false;
+                        i++;
+                    }
+                } else if (token.equals("2>>")) {
+                    if (i + 1 < tokens.size()) {
+                        errorFile = tokens.get(i + 1);
+                        appendError = true;
+                        i++;
+                    }
+                } else if (token.equals(">>") || token.equals("1>>")) {
+                    if (i + 1 < tokens.size()) {
+                        outputFile = tokens.get(i + 1);
+                        appendOutput = true;
+                        i++;
+                    }
+                } else if (token.equals(">") || token.equals("1>")) {
+                    if (i + 1 < tokens.size()) {
+                        outputFile = tokens.get(i + 1);
+                        appendOutput = false;
+                        i++;
+                    }
+                } else {
+                    commandTokens.add(token);
+                }
+            }
+
+            if (commandTokens.isEmpty()) {
                 System.out.print("$ ");
                 continue;
             }
 
-            String command = tokens.get(0);
+            String command = commandTokens.get(0);
             boolean isBuiltin = builtins.contains(command);
 
-            // Handle 'cd' command
-            if (command.equals("cd")) {
-                if (tokens.size() > 1) {
-                    File newDir = new File(tokens.get(1));
-                    if (newDir.isDirectory()) {
-                        currentDirectory = newDir.getAbsolutePath();
-                        System.setProperty("user.dir", currentDirectory);
-                    } else {
-                        System.err.println("cd: " + tokens.get(1) + ": No such directory");
-                    }
-                }
-                System.out.print("$ ");
-                continue;
-            }
-
-            // Create directories for redirection files
+            // Create directories for redirection files before executing commands
             if (errorFile != null) {
                 File errorFileObj = new File(errorFile);
                 File parentDir = errorFileObj.getParentFile();
                 if (parentDir != null && !parentDir.exists()) {
-                    parentDir.mkdirs();
+                    if (!parentDir.mkdirs()) {
+                        System.err.println(command + ": " + errorFile + ": No such file or directory");
+                        System.out.print("$ ");
+                        continue;
+                    }
                 }
-                try {
-                    errorFileObj.createNewFile();
-                } catch (IOException e) {
-                    System.err.println(command + ": " + errorFile + ": No such file or directory");
-                    System.out.print("$ ");
-                    continue;
+                if (!errorFileObj.exists()) {
+                    try {
+                        errorFileObj.createNewFile();
+                    } catch (IOException e) {
+                        System.err.println(command + ": " + errorFile + ": No such file or directory");
+                        System.out.print("$ ");
+                        continue;
+                    }
                 }
             }
 
@@ -80,14 +171,20 @@ public class Main {
                 File outputFileObj = new File(outputFile);
                 File parentDir = outputFileObj.getParentFile();
                 if (parentDir != null && !parentDir.exists()) {
-                    parentDir.mkdirs();
+                    if (!parentDir.mkdirs()) {
+                        System.err.println(command + ": " + outputFile + ": No such file or directory");
+                        System.out.print("$ ");
+                        continue;
+                    }
                 }
-                try {
-                    outputFileObj.createNewFile();
-                } catch (IOException e) {
-                    System.err.println(command + ": " + outputFile + ": No such file or directory");
-                    System.out.print("$ ");
-                    continue;
+                if (!outputFileObj.exists()) {
+                    try {
+                        outputFileObj.createNewFile();
+                    } catch (IOException e) {
+                        System.err.println(command + ": " + outputFile + ": No such file or directory");
+                        System.out.print("$ ");
+                        continue;
+                    }
                 }
             }
 
@@ -95,9 +192,9 @@ public class Main {
             if (isBuiltin) {
                 if (command.equals("echo")) {
                     StringBuilder output = new StringBuilder();
-                    for (int i = 1; i < tokens.size(); i++) {
-                        output.append(tokens.get(i));
-                        if (i < tokens.size() - 1) {
+                    for (int i = 1; i < commandTokens.size(); i++) {
+                        output.append(commandTokens.get(i));
+                        if (i < commandTokens.size() - 1) {
                             output.append(" ");
                         }
                     }
@@ -127,12 +224,21 @@ public class Main {
             boolean executed = false;
 
             if (path != null) {
-                String[] directories = path.split(File.pathSeparator);
+                String[] directories = path.split(":");
                 for (String dir : directories) {
                     File file = new File(dir, command);
                     if (file.exists() && file.canExecute()) {
                         try {
-                            ProcessBuilder pb = new ProcessBuilder(tokens);
+                            // Create copy of command tokens with properly escaped arguments
+                            List<String> escapedTokens = new ArrayList<>();
+                            escapedTokens.add(command);
+                            for (int i = 1; i < commandTokens.size(); i++) {
+                                String token = commandTokens.get(i);
+                                // Preserve backslash escapes in the token
+                                escapedTokens.add(token);
+                            }
+
+                            ProcessBuilder pb = new ProcessBuilder(escapedTokens);
                             pb.directory(new File(currentDirectory));
                             pb.redirectErrorStream(false);
 
@@ -158,47 +264,59 @@ public class Main {
                                 }
                             }
 
-                            // Handle stdout redirection
-                            if (outputFile != null) {
-                                try (
-                                    BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                                    FileWriter outputWriter = new FileWriter(outputFile, appendOutput)
-                                ) {
-                                    String outputLine;
-                                    while ((outputLine = outputReader.readLine()) != null) {
-                                        outputWriter.write(outputLine + "\n");
-                                    }
+                            // Handle stdout
+                            try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                                String outputLine;
+                                List<String> outputLines = new ArrayList<>();
+
+                                while ((outputLine = outputReader.readLine()) != null) {
+                                    outputLines.add(outputLine);
                                 }
-                            } else {
-                                try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                                    String outputLine;
-                                    while ((outputLine = outputReader.readLine()) != null) {
-                                        System.out.println(outputLine);
+
+                                if (outputFile != null) {
+                                    try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
+                                        for (String line : outputLines) {
+                                            outputWriter.write(line + "\n");
+                                        }
+                                    }
+                                } else {
+                                    for (String line : outputLines) {
+                                        System.out.println(line);
                                     }
                                 }
                             }
 
+                            process.waitFor();
                             executed = true;
                             break;
-                        } catch (IOException e) {
-                            System.err.println("Error executing command: " + e.getMessage());
+                        } catch (IOException | InterruptedException e) {
+                            String errorMsg = command + ": " + e.getMessage();
+                            if (errorFile != null) {
+                                try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                                    errorWriter.write(errorMsg + "\n");
+                                } catch (IOException ignored) {}
+                            } else {
+                                System.err.println(errorMsg);
+                            }
                         }
                     }
                 }
             }
 
             if (!executed) {
-                System.err.println("Command not found: " + command);
+                String errorMsg = command + ": command not found";
+                if (errorFile != null) {
+                    try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                        errorWriter.write(errorMsg + "\n");
+                    } catch (IOException e) {
+                        System.err.println(command + ": " + errorFile + ": No such file or directory");
+                    }
+                } else {
+                    System.err.println(errorMsg);
+                }
             }
 
             System.out.print("$ ");
         }
-    }
-
-    // Helper method to process filenames with backslashes
-    private static String processFilename(String filename) {
-        if (filename == null) return null;
-        // Normalize backslashes while preserving the actual backslash character
-        return filename.replace("\\", File.separator);
     }
 }
