@@ -62,13 +62,8 @@ public class Main {
                         // In single quotes, backslashes are treated literally
                         currentToken.append('\\').append(c);
                     } else {
-                        // Outside quotes, preserve backslash for special characters
-                        if (c == ' ' || c == '"' || c == '\'' || c == '\\') {
-                            currentToken.append(c);
-                        } else {
-                            // For non-special characters, preserve both backslash and character
-                            currentToken.append('\\').append(c);
-                        }
+                        // Outside quotes, treat escaped characters literally
+                        currentToken.append(c);
                     }
                     escaped = false;
                     continue;
@@ -103,6 +98,7 @@ public class Main {
                 tokens.add(currentToken.toString());
             }
 
+            // Rest of the code remains the same...
             // Process redirection operators
             List<String> commandTokens = new ArrayList<>();
             for (int i = 0; i < tokens.size(); i++) {
