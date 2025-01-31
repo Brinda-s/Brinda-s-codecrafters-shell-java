@@ -2,6 +2,36 @@ import java.io.*;
 import java.util.*;
 
 public class Main {
+    private static String processEchoToken(String token) {
+        StringBuilder result = new StringBuilder();
+        boolean escaped = false;
+        
+        for (int i = 0; i < token.length(); i++) {
+            char c = token.charAt(i);
+            
+            if (escaped) {
+                if (c != ' ' && c != '"' && c != '\'' && c != '\\') {
+                    // For non-special characters, just append the character
+                    result.append(c);
+                } else {
+                    // For special characters, preserve the escape
+                    result.append(c);
+                }
+                escaped = false;
+                continue;
+            }
+            
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+            
+            result.append(c);
+        }
+        
+        return result.toString();
+    }
+
     public static void main(String[] args) throws Exception {
         System.out.print("$ ");
 
@@ -27,14 +57,12 @@ public class Main {
                 continue;
             }
 
-            // Parse input to extract command tokens and redirection
             String outputFile = null;
             String errorFile = null;
             boolean appendOutput = false;
             boolean appendError = false;
             List<String> tokens = new ArrayList<>();
 
-            // Parse input preserving quoted strings with proper escape handling
             StringBuilder currentToken = new StringBuilder();
             boolean inDoubleQuotes = false;
             boolean inSingleQuotes = false;
@@ -45,7 +73,6 @@ public class Main {
 
                 if (escaped) {
                     if (inDoubleQuotes) {
-                        // In double quotes, only certain characters are escaped
                         if (c == 'n') {
                             currentToken.append('\n');
                         } else if (c == 't') {
@@ -55,20 +82,13 @@ public class Main {
                         } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
                             currentToken.append(c);
                         } else {
-                            // Keep the backslash for other characters
                             currentToken.append('\\').append(c);
                         }
                     } else if (inSingleQuotes) {
-                        // In single quotes, backslashes are treated literally
                         currentToken.append('\\').append(c);
                     } else {
-                        // Outside quotes, preserve backslash for special characters
-                        if (c == ' ' || c == '"' || c == '\'' || c == '\\') {
-                            currentToken.append(c);
-                        } else {
-                            // For non-special characters, just append the character
-                            currentToken.append(c);
-                        }
+                        // Outside quotes, preserve backslashes for all escaped characters
+                        currentToken.append('\\').append(c);
                     }
                     escaped = false;
                     continue;
@@ -103,7 +123,6 @@ public class Main {
                 tokens.add(currentToken.toString());
             }
 
-            // Process redirection operators
             List<String> commandTokens = new ArrayList<>();
             for (int i = 0; i < tokens.size(); i++) {
                 String token = tokens.get(i);
@@ -144,55 +163,11 @@ public class Main {
             String command = commandTokens.get(0);
             boolean isBuiltin = builtins.contains(command);
 
-            // Create directories for redirection files before executing commands
-            if (errorFile != null) {
-                File errorFileObj = new File(errorFile);
-                File parentDir = errorFileObj.getParentFile();
-                if (parentDir != null && !parentDir.exists()) {
-                    if (!parentDir.mkdirs()) {
-                        System.err.println(command + ": " + errorFile + ": No such file or directory");
-                        System.out.print("$ ");
-                        continue;
-                    }
-                }
-                if (!errorFileObj.exists()) {
-                    try {
-                        errorFileObj.createNewFile();
-                    } catch (IOException e) {
-                        System.err.println(command + ": " + errorFile + ": No such file or directory");
-                        System.out.print("$ ");
-                        continue;
-                    }
-                }
-            }
-
-            if (outputFile != null) {
-                File outputFileObj = new File(outputFile);
-                File parentDir = outputFileObj.getParentFile();
-                if (parentDir != null && !parentDir.exists()) {
-                    if (!parentDir.mkdirs()) {
-                        System.err.println(command + ": " + outputFile + ": No such file or directory");
-                        System.out.print("$ ");
-                        continue;
-                    }
-                }
-                if (!outputFileObj.exists()) {
-                    try {
-                        outputFileObj.createNewFile();
-                    } catch (IOException e) {
-                        System.err.println(command + ": " + outputFile + ": No such file or directory");
-                        System.out.print("$ ");
-                        continue;
-                    }
-                }
-            }
-
-            // Handle builtin commands
             if (isBuiltin) {
                 if (command.equals("echo")) {
                     StringBuilder output = new StringBuilder();
                     for (int i = 1; i < commandTokens.size(); i++) {
-                        output.append(commandTokens.get(i));
+                        output.append(processEchoToken(commandTokens.get(i)));
                         if (i < commandTokens.size() - 1) {
                             output.append(" ");
                         }
@@ -218,7 +193,6 @@ public class Main {
                 continue;
             }
 
-            // Handle external commands
             String path = System.getenv("PATH");
             boolean executed = false;
 
@@ -228,22 +202,12 @@ public class Main {
                     File file = new File(dir, command);
                     if (file.exists() && file.canExecute()) {
                         try {
-                            // Create copy of command tokens with properly escaped arguments
-                            List<String> escapedTokens = new ArrayList<>();
-                            escapedTokens.add(command);
-                            for (int i = 1; i < commandTokens.size(); i++) {
-                                String token = commandTokens.get(i);
-                                // Preserve backslash escapes in the token
-                                escapedTokens.add(token);
-                            }
-
-                            ProcessBuilder pb = new ProcessBuilder(escapedTokens);
+                            ProcessBuilder pb = new ProcessBuilder(commandTokens);
                             pb.directory(new File(currentDirectory));
                             pb.redirectErrorStream(false);
 
                             Process process = pb.start();
 
-                            // Handle stderr redirection
                             if (errorFile != null) {
                                 try (
                                     BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
@@ -263,7 +227,6 @@ public class Main {
                                 }
                             }
 
-                            // Handle stdout
                             try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                                 String outputLine;
                                 List<String> outputLines = new ArrayList<>();
