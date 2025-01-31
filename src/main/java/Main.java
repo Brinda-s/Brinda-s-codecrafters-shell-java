@@ -168,6 +168,7 @@ public class Main {
 
             // Create directories for redirection files before executing commands
             if (errorFile != null) {
+                errorFile = handleEscapeSequences(errorFile); // Handle escape sequences
                 File errorFileObj = new File(errorFile);
                 File parentDir = errorFileObj.getParentFile();
                 if (parentDir != null && !parentDir.exists()) {
@@ -189,6 +190,7 @@ public class Main {
             }
 
             if (outputFile != null) {
+                outputFile = handleEscapeSequences(outputFile); // Handle escape sequences
                 File outputFileObj = new File(outputFile);
                 File parentDir = outputFileObj.getParentFile();
                 if (parentDir != null && !parentDir.exists()) {
@@ -285,59 +287,50 @@ public class Main {
                                 }
                             }
 
-                            // Handle stdout
-                            try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                                String outputLine;
-                                List<String> outputLines = new ArrayList<>();
-
-                                while ((outputLine = outputReader.readLine()) != null) {
-                                    outputLines.add(outputLine);
-                                }
-
-                                if (outputFile != null) {
-                                    try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
-                                        for (String line : outputLines) {
-                                            outputWriter.write(line + "\n");
-                                        }
+                            // Handle stdout redirection
+                            if (outputFile != null) {
+                                try (
+                                    BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                                    FileWriter outputWriter = new FileWriter(outputFile, appendOutput)
+                                ) {
+                                    String outputLine;
+                                    while ((outputLine = outputReader.readLine()) != null) {
+                                        outputWriter.write(outputLine + "\n");
                                     }
-                                } else {
-                                    for (String line : outputLines) {
-                                        System.out.println(line);
+                                }
+                            } else {
+                                try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                                    String outputLine;
+                                    while ((outputLine = outputReader.readLine()) != null) {
+                                        System.out.println(outputLine);
                                     }
                                 }
                             }
 
-                            process.waitFor();
                             executed = true;
                             break;
-                        } catch (IOException | InterruptedException e) {
-                            String errorMsg = command + ": " + e.getMessage();
-                            if (errorFile != null) {
-                                try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                    errorWriter.write(errorMsg + "\n");
-                                } catch (IOException ignored) {}
-                            } else {
-                                System.err.println(errorMsg);
-                            }
+                        } catch (IOException e) {
+                            System.err.println("Error executing command: " + e.getMessage());
                         }
                     }
                 }
             }
 
             if (!executed) {
-                String errorMsg = command + ": command not found";
-                if (errorFile != null) {
-                    try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                        errorWriter.write(errorMsg + "\n");
-                    } catch (IOException e) {
-                        System.err.println(command + ": " + errorFile + ": No such file or directory");
-                    }
-                } else {
-                    System.err.println(errorMsg);
-                }
+                System.err.println("Command not found: " + command);
             }
 
             System.out.print("$ ");
         }
+    }
+
+    // Helper method to handle escape sequences in file paths
+    public static String handleEscapeSequences(String input) {
+        return input.replaceAll("\\\\n", "\n")
+                    .replaceAll("\\\\t", "\t")
+                    .replaceAll("\\\\r", "\r")
+                    .replaceAll("\\\\'", "'")
+                    .replaceAll("\\\\\"", "\"")
+                    .replaceAll("\\\\\\\\", "\\\\");
     }
 }
