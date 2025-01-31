@@ -3,12 +3,6 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        Console console = System.console();
-        if (console == null) {
-            System.err.println("No console available");
-            return;
-        }
-
         Set<String> builtins = new HashSet<>();
         builtins.add("echo");
         builtins.add("exit");
@@ -38,6 +32,7 @@ public class Main {
                         if (completed != null && !completed.equals(partial)) {
                             // Clear the current line and print the completed command
                             System.out.print("\r$ " + completed + " ");
+                            System.out.flush();
                             currentInput = new StringBuilder(completed + " ");
                         }
                         continue;
