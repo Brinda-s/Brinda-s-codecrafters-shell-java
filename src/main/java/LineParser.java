@@ -3,6 +3,8 @@
 
 import java.io.*;
 import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 class CommandLine {
     private final List<String> tokens;
@@ -77,9 +79,11 @@ class LineParser {
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
-                    if (c == '"' || c == '\\' || c == '$' || c == '`') {
+                    // Inside double quotes, only preserve specific escaped characters
+                    if (c == '"' || c == '\\') {
                         currentToken.append(c);
                     } else {
+                        // Keep both the backslash and the character
                         currentToken.append(ESCAPE).append(c);
                     }
                     escaped = false;
@@ -92,21 +96,8 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    // Improved backslash handling for paths and special characters
-                    if (c == 'n') {
-                        currentToken.append('\n');
-                    } else if (c == 't') {
-                        currentToken.append('\t');
-                    } else if (c == 'r') {
-                        currentToken.append('\r');
-                    } else if (c == ' ' || c == '"' || c == '\'' || c == '\\' || 
-                               Character.isLetterOrDigit(c) || c == '/' || c == '.' || 
-                               c == '_' || c == '-') {
-                        currentToken.append(c);
-                    } else {
-                        // Preserve original backslash behavior for other characters
-                        currentToken.append(ESCAPE).append(c);
-                    }
+                    // Outside quotes, preserve the literal value of the next character
+                    currentToken.append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
                     escaped = true;
@@ -116,47 +107,32 @@ class LineParser {
                     inDoubleQuotes = true;
                 } else if (c == '2' && index + 2 < input.length() && 
                          input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
+                    handleToken(tokens, currentToken, foundRedirect, isErrorRedirect, outputFile, errorFile);
                     foundRedirect = true;
                     isErrorRedirect = true;
                     appendError = true;
                     index += 2;
                 } else if (c == '2' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
+                    handleToken(tokens, currentToken, foundRedirect, isErrorRedirect, outputFile, errorFile);
                     foundRedirect = true;
                     isErrorRedirect = true;
                     index++;
                 } else if (c == '1' && index + 2 < input.length() && 
                          input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
+                    handleToken(tokens, currentToken, foundRedirect, isErrorRedirect, outputFile, errorFile);
                     foundRedirect = true;
                     isErrorRedirect = false;
                     appendOutput = true;
                     index += 2;
                 } else if (c == '>' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
+                    handleToken(tokens, currentToken, foundRedirect, isErrorRedirect, outputFile, errorFile);
                     foundRedirect = true;
                     isErrorRedirect = false;
                     appendOutput = true;
                     index++;
                 } else if (c == '>' || (c == '1' && index + 1 < input.length() && 
                          input.charAt(index + 1) == '>')) {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
+                    handleToken(tokens, currentToken, foundRedirect, isErrorRedirect, outputFile, errorFile);
                     foundRedirect = true;
                     isErrorRedirect = false;
                     if (c == '1') index++;
@@ -183,6 +159,7 @@ class LineParser {
             index++;
         }
         
+        // Handle any remaining token
         if (currentToken.length() > 0) {
             if (foundRedirect) {
                 if (isErrorRedirect) {
@@ -196,5 +173,22 @@ class LineParser {
         }
         
         return new CommandLine(tokens, outputFile, errorFile, appendOutput, appendError);
+    }
+    
+    private void handleToken(List<String> tokens, StringBuilder currentToken, 
+                           boolean foundRedirect, boolean isErrorRedirect,
+                           String outputFile, String errorFile) {
+        if (currentToken.length() > 0) {
+            if (foundRedirect) {
+                if (isErrorRedirect) {
+                    errorFile = currentToken.toString();
+                } else {
+                    outputFile = currentToken.toString();
+                }
+            } else {
+                tokens.add(currentToken.toString());
+            }
+            currentToken.setLength(0);
+        }
     }
 }
