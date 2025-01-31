@@ -42,20 +42,64 @@ public class Main {
             String command = commandTokens.get(0);
             boolean isBuiltin = builtins.contains(command);
 
-            // Create directories for redirection files
+            // Create directories and files for redirection
             if (errorFile != null) {
-                File errorFileObj = new File(errorFile);
-                createDirectoryIfNeeded(errorFileObj.getParentFile());
+                try {
+                    File errorFileObj = new File(errorFile);
+                    File parentDir = errorFileObj.getParentFile();
+                    if (parentDir != null) {
+                        parentDir.mkdirs();
+                    }
+                    if (!errorFileObj.exists()) {
+                        errorFileObj.createNewFile();
+                    }
+                } catch (IOException e) {
+                    System.err.println(command + ": " + errorFile + ": No such file or directory");
+                    System.out.print("$ ");
+                    continue;
+                }
             }
 
             if (outputFile != null) {
-                File outputFileObj = new File(outputFile);
-                createDirectoryIfNeeded(outputFileObj.getParentFile());
+                try {
+                    File outputFileObj = new File(outputFile);
+                    File parentDir = outputFileObj.getParentFile();
+                    if (parentDir != null) {
+                        parentDir.mkdirs();
+                    }
+                    if (!outputFileObj.exists()) {
+                        outputFileObj.createNewFile();
+                    }
+                } catch (IOException e) {
+                    System.err.println(command + ": " + outputFile + ": No such file or directory");
+                    System.out.print("$ ");
+                    continue;
+                }
             }
 
             // Handle builtin commands
             if (isBuiltin) {
-                handleBuiltinCommand(command, commandTokens, outputFile, errorFile, appendOutput);
+                if (command.equals("echo")) {
+                    StringBuilder output = new StringBuilder();
+                    for (int i = 1; i < commandTokens.size(); i++) {
+                        output.append(commandTokens.get(i));
+                        if (i < commandTokens.size() - 1) {
+                            output.append(" ");
+                        }
+                    }
+
+                    try {
+                        if (outputFile != null) {
+                            try (FileWriter writer = new FileWriter(outputFile, appendOutput)) {
+                                writer.write(output.toString() + "\n");
+                            }
+                        } else {
+                            System.out.println(output);
+                        }
+                    } catch (IOException e) {
+                        handleError("echo: " + outputFile + ": No such file or directory", errorFile, appendOutput);
+                    }
+                }
                 System.out.print("$ ");
                 continue;
             }
@@ -74,13 +118,40 @@ public class Main {
                             pb.directory(new File(currentDirectory));
                             pb.redirectErrorStream(false);
 
+                            // Set up output redirection
+                            if (outputFile != null) {
+                                pb.redirectOutput(appendOutput ? 
+                                    ProcessBuilder.Redirect.appendTo(new File(outputFile)) : 
+                                    ProcessBuilder.Redirect.to(new File(outputFile)));
+                            }
+
+                            // Set up error redirection
+                            if (errorFile != null) {
+                                pb.redirectError(appendOutput ? 
+                                    ProcessBuilder.Redirect.appendTo(new File(errorFile)) : 
+                                    ProcessBuilder.Redirect.to(new File(errorFile)));
+                            }
+
                             Process process = pb.start();
-
-                            // Handle stderr
-                            handleProcessOutput(process.getErrorStream(), errorFile, appendOutput, true);
-
-                            // Handle stdout
-                            handleProcessOutput(process.getInputStream(), outputFile, appendOutput, false);
+                            
+                            // If no redirection, handle output and error streams
+                            if (outputFile == null) {
+                                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                                    String line;
+                                    while ((line = reader.readLine()) != null) {
+                                        System.out.println(line);
+                                    }
+                                }
+                            }
+                            
+                            if (errorFile == null) {
+                                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                                    String line;
+                                    while ((line = reader.readLine()) != null) {
+                                        System.err.println(line);
+                                    }
+                                }
+                            }
 
                             process.waitFor();
                             executed = true;
@@ -97,65 +168,6 @@ public class Main {
             }
 
             System.out.print("$ ");
-        }
-    }
-
-    private static void createDirectoryIfNeeded(File dir) throws IOException {
-        if (dir != null && !dir.exists() && !dir.mkdirs()) {
-            throw new IOException("Failed to create directory: " + dir);
-        }
-    }
-
-    private static void handleBuiltinCommand(String command, List<String> tokens, 
-                                           String outputFile, String errorFile, boolean appendOutput) {
-        if (command.equals("echo")) {
-            StringBuilder output = new StringBuilder();
-            for (int i = 1; i < tokens.size(); i++) {
-                output.append(tokens.get(i));
-                if (i < tokens.size() - 1) {
-                    output.append(" ");
-                }
-            }
-
-            try {
-                if (outputFile != null) {
-                    try (FileWriter writer = new FileWriter(outputFile, appendOutput)) {
-                        writer.write(output.toString() + "\n");
-                    }
-                } else {
-                    System.out.println(output);
-                }
-            } catch (IOException e) {
-                handleError("echo: " + outputFile + ": No such file or directory", 
-                           errorFile, appendOutput);
-            }
-        }
-    }
-
-    private static void handleProcessOutput(InputStream stream, String redirectFile, 
-                                          boolean append, boolean isError) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
-            List<String> lines = new ArrayList<>();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                lines.add(line);
-            }
-
-            if (redirectFile != null) {
-                try (FileWriter writer = new FileWriter(redirectFile, append)) {
-                    for (String outputLine : lines) {
-                        writer.write(outputLine + "\n");
-                    }
-                }
-            } else {
-                for (String outputLine : lines) {
-                    if (isError) {
-                        System.err.println(outputLine);
-                    } else {
-                        System.out.println(outputLine);
-                    }
-                }
-            }
         }
     }
 
