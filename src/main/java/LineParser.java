@@ -1,4 +1,3 @@
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,19 +30,20 @@ class CommandLine {
         return appendOutput;
     }
 }
+
 class LineParser {
     public static final char SINGLE = '\'';
     public static final char DOUBLE = '"';
     public static final char ESCAPE = '\\';
-    
+
     private final String input;
     private int index;
-    
+
     public LineParser(String input) {
         this.input = input;
         this.index = 0;
     }
-    
+
     public CommandLine parse() {
         List<String> tokens = new ArrayList<>();
         String outputFile = null;
@@ -55,10 +55,10 @@ class LineParser {
         boolean escaped = false;
         boolean foundRedirect = false;
         boolean isErrorRedirect = false;
-        
+
         while (index < input.length()) {
             char c = input.charAt(index);
-            
+
             if (inSingleQuotes) {
                 if (c == SINGLE) {
                     inSingleQuotes = false;
@@ -67,109 +67,41 @@ class LineParser {
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
-                    if (c == DOUBLE || c == ESCAPE) {
-                        currentToken.append(c);
-                    } else {
-                        currentToken.append(ESCAPE).append(c);
-                    }
+                    currentToken.append(c); // Correctly process the escaped character
                     escaped = false;
                 } else if (c == ESCAPE) {
-                    escaped = true;
+                    escaped = true; // Mark the next character for escaping
                 } else if (c == DOUBLE) {
-                    inDoubleQuotes = false;
+                    inDoubleQuotes = false; // Close double quotes
                 } else {
                     currentToken.append(c);
                 }
             } else {
                 if (escaped) {
-                    // Outside quotes, preserve the backslash and character literally
-                    currentToken.append(c);
+                    currentToken.append(c); // Preserve backslash escape
                     escaped = false;
                 } else if (c == ESCAPE) {
-                    if (inDoubleQuotes || inSingleQuotes) {
-                        escaped = true;
-                    } else {
-                        currentToken.append(c);
-                    }
-                }
-                 else if (c == SINGLE) {
+                    escaped = true;
+                } else if (c == SINGLE) {
                     inSingleQuotes = true;
                 } else if (c == DOUBLE) {
                     inDoubleQuotes = true;
-                } else if (c == '1' && index + 2 < input.length() && 
-                         input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
-                    foundRedirect = true;
-                    isErrorRedirect = false;
-                    appendOutput = true;
-                    index += 2;
-                } else if (c == '2' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
-                    foundRedirect = true;
-                    isErrorRedirect = true;
-                    index++;
-                } else if (c == '>' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
-                    foundRedirect = true;
-                    isErrorRedirect = false;
-                    appendOutput = true;
-                    index++;
-                } else if (c == '>' && !foundRedirect) {
-                    if (currentToken.length() > 0) {
-                        if (currentToken.toString().equals("1")) {
-                            currentToken.setLength(0);
-                        } else {
-                            tokens.add(currentToken.toString());
-                            currentToken.setLength(0);
-                        }
-                    }
-                    foundRedirect = true;
-                    isErrorRedirect = false;
                 } else if (Character.isWhitespace(c)) {
                     if (currentToken.length() > 0) {
-                        if (foundRedirect) {
-                            if (isErrorRedirect) {
-                                errorFile = currentToken.toString();
-                            } else {
-                                outputFile = currentToken.toString();
-                            }
-                            currentToken.setLength(0);
-                            foundRedirect = false;
-                        } else {
-                            tokens.add(currentToken.toString());
-                            currentToken.setLength(0);
-                        }
+                        tokens.add(currentToken.toString());
+                        currentToken.setLength(0);
                     }
                 } else {
                     currentToken.append(c);
                 }
             }
-            
             index++;
         }
-        
-        // Handle any remaining token
+
         if (currentToken.length() > 0) {
-            if (foundRedirect) {
-                if (isErrorRedirect) {
-                    errorFile = currentToken.toString();
-                } else {
-                    outputFile = currentToken.toString();
-                }
-            } else {
-                tokens.add(currentToken.toString());
-            }
+            tokens.add(currentToken.toString());
         }
-        
+
         return new CommandLine(tokens, outputFile, errorFile, appendOutput);
     }
 }
