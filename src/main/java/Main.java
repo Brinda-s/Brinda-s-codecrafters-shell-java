@@ -14,178 +14,163 @@ public class Main {
         builtins.add("cd");
 
         String currentDirectory = System.getProperty("user.dir");
-        StringBuilder currentInput = new StringBuilder();
 
         while (true) {
-            int input = System.in.read();
-            
-            if (input == '\t') {  // Tab character
-                String partialCommand = currentInput.toString().trim();
-                String completedCommand = autocomplete(partialCommand);
+            String input = scanner.nextLine().trim();
+
+            // Simulate autocompletion for "echo" and "exit"
+            if (input.endsWith("\t")) { // Check if the input ends with a TAB character
+                String partialCommand = input.substring(0, input.length() - 1).trim(); // Remove the TAB character
+                String completedCommand = autocomplete(partialCommand); // Autocomplete the command
                 if (completedCommand != null) {
-                    System.out.print("\r$ " + completedCommand);  // Clear line and print completed command
-                    currentInput = new StringBuilder(completedCommand);
+                    System.out.println("$ " + completedCommand); // Display the completed command
+                    input = completedCommand; // Use the completed command
                 }
+            }
+
+            if (input.equals("exit 0")) {
+                System.exit(0);
+            }
+
+            if (input.isEmpty()) {
+                System.out.print("$ ");
                 continue;
             }
-            
-            if (input == '\n') {  // Enter key
-                String commandLine = currentInput.toString().trim();
-                currentInput = new StringBuilder();  // Reset input buffer
-                
-                if (commandLine.equals("exit 0")) {
-                    System.exit(0);
-                }
 
-                if (commandLine.isEmpty()) {
-                    System.out.print("$ ");
-                    continue;
-                }
+            // Parse command line with potential redirection
+            LineParser parser = new LineParser(input);
+            CommandLine cmdLine = parser.parse();
+            List<String> tokens = cmdLine.getTokens();
+            String outputFile = cmdLine.getOutputFile();
+            String errorFile = cmdLine.getErrorFile();
+            boolean appendOutput = cmdLine.isAppendOutput();
+            boolean appendError = cmdLine.isAppendError();
 
-                // Parse command line with potential redirection
-                LineParser parser = new LineParser(commandLine);
-                CommandLine cmdLine = parser.parse();
-                List<String> tokens = cmdLine.getTokens();
-                String outputFile = cmdLine.getOutputFile();
-                String errorFile = cmdLine.getErrorFile();
-                boolean appendOutput = cmdLine.isAppendOutput();
-                boolean appendError = cmdLine.isAppendError();
+            if (tokens.isEmpty()) {
+                System.out.print("$ ");
+                continue;
+            }
 
-                if (tokens.isEmpty()) {
-                    System.out.print("$ ");
-                    continue;
-                }
+            String command = tokens.get(0);
+            boolean isBuiltin = builtins.contains(command);
 
-                String command = tokens.get(0);
-                boolean isBuiltin = builtins.contains(command);
-
-                // Create directories for redirection files before executing commands
-                if (errorFile != null) {
-                    File errorFileObj = new File(errorFile);
-                    File parentDir = errorFileObj.getParentFile();
-                    if (parentDir != null && !parentDir.exists()) {
-                        if (!parentDir.mkdirs()) {
-                            System.err.println(command + ": " + errorFile + ": No such file or directory");
-                            System.out.print("$ ");
-                            continue;
-                        }
-                    }
-                    try {
-                        if (!errorFileObj.exists()) {
-                            errorFileObj.createNewFile();
-                        }
-                    } catch (IOException e) {
+            // Create directories for redirection files before executing commands
+            if (errorFile != null) {
+                File errorFileObj = new File(errorFile);
+                File parentDir = errorFileObj.getParentFile();
+                if (parentDir != null && !parentDir.exists()) {
+                    if (!parentDir.mkdirs()) {
                         System.err.println(command + ": " + errorFile + ": No such file or directory");
                         System.out.print("$ ");
                         continue;
                     }
                 }
-
-                if (outputFile != null) {
-                    File outputFileObj = new File(outputFile);
-                    File parentDir = outputFileObj.getParentFile();
-                    if (parentDir != null && !parentDir.exists()) {
-                        if (!parentDir.mkdirs()) {
-                            System.err.println(command + ": " + outputFile + ": No such file or directory");
-                            System.out.print("$ ");
-                            continue;
-                        }
+                try {
+                    if (!errorFileObj.exists()) {
+                        errorFileObj.createNewFile();
                     }
-                    try {
-                        if (!outputFileObj.exists()) {
-                            outputFileObj.createNewFile();
-                        }
-                    } catch (IOException e) {
+                } catch (IOException e) {
+                    System.err.println(command + ": " + errorFile + ": No such file or directory");
+                    System.out.print("$ ");
+                    continue;
+                }
+            }
+
+            if (outputFile != null) {
+                File outputFileObj = new File(outputFile);
+                File parentDir = outputFileObj.getParentFile();
+                if (parentDir != null && !parentDir.exists()) {
+                    if (!parentDir.mkdirs()) {
                         System.err.println(command + ": " + outputFile + ": No such file or directory");
                         System.out.print("$ ");
                         continue;
                     }
                 }
+                try {
+                    if (!outputFileObj.exists()) {
+                        outputFileObj.createNewFile();
+                    }
+                } catch (IOException e) {
+                    System.err.println(command + ": " + outputFile + ": No such file or directory");
+                    System.out.print("$ ");
+                    continue;
+                }
+            }
 
-                // Handle builtin commands
-                if (isBuiltin) {
-                    if (command.equals("echo")) {
-                        StringBuilder output = new StringBuilder();
-                        for (int i = 1; i < tokens.size(); i++) {
-                            output.append(tokens.get(i));
-                            if (i < tokens.size() - 1) {
-                                output.append(" ");
+            // Handle builtin commands
+            if (isBuiltin) {
+                if (command.equals("echo")) {
+                    StringBuilder output = new StringBuilder();
+                    for (int i = 1; i < tokens.size(); i++) {
+                        output.append(tokens.get(i));
+                        if (i < tokens.size() - 1) {
+                            output.append(" ");
+                        }
+                    }
+
+                    if (outputFile != null) {
+                        try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
+                            outputWriter.write(output.toString() + "\n");
+                        } catch (IOException e) {
+                            if (errorFile != null) {
+                                try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                                    errorWriter.write("echo: " + outputFile + ": No such file or directory\n");
+                                } catch (IOException ignored) {}
+                            } else {
+                                System.err.println("echo: " + outputFile + ": No such file or directory");
                             }
                         }
+                    } else {
+                        System.out.println(output);
+                    }
+                } else if (command.equals("pwd")) {
+                    String output = currentDirectory;
 
-                        if (outputFile != null) {
-                            try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
-                                outputWriter.write(output.toString() + "\n");
-                            } catch (IOException e) {
+                    if (outputFile != null) {
+                        try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
+                            outputWriter.write(output + "\n");
+                        } catch (IOException e) {
+                            if (errorFile != null) {
+                                try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                                    errorWriter.write("pwd: " + outputFile + ": No such file or directory\n");
+                                } catch (IOException ignored) {}
+                            } else {
+                                System.err.println("pwd: " + outputFile + ": No such file or directory");
+                            }
+                        }
+                    } else {
+                        System.out.println(output);
+                    }
+                } else if (command.equals("cd")) {
+                    if (tokens.size() > 1) {
+                        String targetDirectory = tokens.get(1);
+                        if (targetDirectory.startsWith("~")) {
+                            String homeDirectory = System.getenv("HOME");
+                            if (homeDirectory == null) {
+                                String errorMsg = "cd: Home not set";
                                 if (errorFile != null) {
                                     try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                        errorWriter.write("echo: " + outputFile + ": No such file or directory\n");
+                                        errorWriter.write(errorMsg + "\n");
                                     } catch (IOException ignored) {}
                                 } else {
-                                    System.err.println("echo: " + outputFile + ": No such file or directory");
+                                    System.err.println(errorMsg);
                                 }
+                                System.out.print("$ ");
+                                continue;
                             }
-                        } else {
-                            System.out.println(output);
+                            targetDirectory = homeDirectory + targetDirectory.substring(1);
                         }
-                    } else if (command.equals("pwd")) {
-                        String output = currentDirectory;
 
-                        if (outputFile != null) {
-                            try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
-                                outputWriter.write(output + "\n");
-                            } catch (IOException e) {
-                                if (errorFile != null) {
-                                    try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                        errorWriter.write("pwd: " + outputFile + ": No such file or directory\n");
-                                    } catch (IOException ignored) {}
-                                } else {
-                                    System.err.println("pwd: " + outputFile + ": No such file or directory");
-                                }
-                            }
-                        } else {
-                            System.out.println(output);
+                        File newDir = new File(targetDirectory);
+                        if (!newDir.isAbsolute()) {
+                            newDir = new File(currentDirectory, targetDirectory);
                         }
-                    } else if (command.equals("cd")) {
-                        if (tokens.size() > 1) {
-                            String targetDirectory = tokens.get(1);
-                            if (targetDirectory.startsWith("~")) {
-                                String homeDirectory = System.getenv("HOME");
-                                if (homeDirectory == null) {
-                                    String errorMsg = "cd: Home not set";
-                                    if (errorFile != null) {
-                                        try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                            errorWriter.write(errorMsg + "\n");
-                                        } catch (IOException ignored) {}
-                                    } else {
-                                        System.err.println(errorMsg);
-                                    }
-                                    System.out.print("$ ");
-                                    continue;
-                                }
-                                targetDirectory = homeDirectory + targetDirectory.substring(1);
-                            }
 
-                            File newDir = new File(targetDirectory);
-                            if (!newDir.isAbsolute()) {
-                                newDir = new File(currentDirectory, targetDirectory);
-                            }
-
-                            try {
-                                if (newDir.exists() && newDir.isDirectory()) {
-                                    currentDirectory = newDir.getCanonicalPath();
-                                } else {
-                                    String errorMsg = "cd: " + targetDirectory + ": No such file or directory";
-                                    if (errorFile != null) {
-                                        try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                            errorWriter.write(errorMsg + "\n");
-                                        } catch (IOException ignored) {}
-                                    } else {
-                                        System.err.println(errorMsg);
-                                    }
-                                }
-                            } catch (IOException e) {
-                                String errorMsg = "cd: " + e.getMessage();
+                        try {
+                            if (newDir.exists() && newDir.isDirectory()) {
+                                currentDirectory = newDir.getCanonicalPath();
+                            } else {
+                                String errorMsg = "cd: " + targetDirectory + ": No such file or directory";
                                 if (errorFile != null) {
                                     try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
                                         errorWriter.write(errorMsg + "\n");
@@ -194,14 +179,73 @@ public class Main {
                                     System.err.println(errorMsg);
                                 }
                             }
+                        } catch (IOException e) {
+                            String errorMsg = "cd: " + e.getMessage();
+                            if (errorFile != null) {
+                                try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                                    errorWriter.write(errorMsg + "\n");
+                                } catch (IOException ignored) {}
+                            } else {
+                                System.err.println(errorMsg);
+                            }
                         }
-                    } else if (command.equals("type")) {
-                        if (tokens.size() > 1) {
-                            String typeCommand = tokens.get(1);
-                            String output;
+                    }
+                } else if (command.equals("type")) {
+                    if (tokens.size() > 1) {
+                        String typeCommand = tokens.get(1);
+                        String output;
 
-                            if (builtins.contains(typeCommand)) {
-                                output = typeCommand + " is a shell builtin";
+                        if (builtins.contains(typeCommand)) {
+                            output = typeCommand + " is a shell builtin";
+                            if (outputFile != null) {
+                                try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
+                                    outputWriter.write(output + "\n");
+                                } catch (IOException e) {
+                                    if (errorFile != null) {
+                                        try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                                            errorWriter.write("type: " + outputFile + ": No such file or directory\n");
+                                        } catch (IOException ignored) {}
+                                    } else {
+                                        System.err.println("type: " + outputFile + ": No such file or directory");
+                                    }
+                                }
+                            } else {
+                                System.out.println(output);
+                            }
+                        } else {
+                            String path = System.getenv("PATH");
+                            boolean found = false;
+
+                            if (path != null) {
+                                String[] directories = path.split(":");
+                                for (String dir : directories) {
+                                    File file = new File(dir, typeCommand);
+                                    if (file.exists() && file.canExecute()) {
+                                        output = typeCommand + " is " + file.getAbsolutePath();
+                                        found = true;
+
+                                        if (outputFile != null) {
+                                            try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
+                                                outputWriter.write(output + "\n");
+                                            } catch (IOException e) {
+                                                if (errorFile != null) {
+                                                    try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                                                        errorWriter.write("type: " + outputFile + ": No such file or directory\n");
+                                                    } catch (IOException ignored) {}
+                                                } else {
+                                                    System.err.println("type: " + outputFile + ": No such file or directory");
+                                                }
+                                            }
+                                        } else {
+                                            System.out.println(output);
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (!found) {
+                                output = typeCommand + ": not found";
                                 if (outputFile != null) {
                                     try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
                                         outputWriter.write(output + "\n");
@@ -217,130 +261,78 @@ public class Main {
                                 } else {
                                     System.out.println(output);
                                 }
-                            } else {
-                                String path = System.getenv("PATH");
-                                boolean found = false;
-
-                                if (path != null) {
-                                    String[] directories = path.split(":");
-                                    for (String dir : directories) {
-                                        File file = new File(dir, typeCommand);
-                                        if (file.exists() && file.canExecute()) {
-                                            output = typeCommand + " is " + file.getAbsolutePath();
-                                            found = true;
-
-                                            if (outputFile != null) {
-                                                try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
-                                                    outputWriter.write(output + "\n");
-                                                } catch (IOException e) {
-                                                    if (errorFile != null) {
-                                                        try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                                            errorWriter.write("type: " + outputFile + ": No such file or directory\n");
-                                                        } catch (IOException ignored) {}
-                                                    } else {
-                                                        System.err.println("type: " + outputFile + ": No such file or directory");
-                                                    }
-                                                }
-                                            } else {
-                                                System.out.println(output);
-                                            }
-                                            break;
-                                        }
-                                    }
-                                }
-
-                                if (!found) {
-                                    output = typeCommand + ": not found";
-                                    if (outputFile != null) {
-                                        try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
-                                            outputWriter.write(output + "\n");
-                                        } catch (IOException e) {
-                                            if (errorFile != null) {
-                                                try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                                    errorWriter.write("type: " + outputFile + ": No such file or directory\n");
-                                                } catch (IOException ignored) {}
-                                            } else {
-                                                System.err.println("type: " + outputFile + ": No such file or directory");
-                                            }
-                                        }
-                                    } else {
-                                        System.out.println(output);
-                                    }
-                                }
                             }
                         }
                     }
-                } else {
-                    // Handle external commands
-                    String path = System.getenv("PATH");
-                    boolean executed = false;
+                }
+            } else {
+                // Handle external commands
+                String path = System.getenv("PATH");
+                boolean executed = false;
 
-                    if (path != null) {
-                        String[] directories = path.split(":");
-                        for (String dir : directories) {
-                            File file = new File(dir, command);
-                            if (file.exists() && file.canExecute()) {
-                                try {
-                                    ProcessBuilder pb = new ProcessBuilder(tokens);
-                                    pb.directory(new File(currentDirectory));
-                                    pb.redirectErrorStream(false);
+                if (path != null) {
+                    String[] directories = path.split(":");
+                    for (String dir : directories) {
+                        File file = new File(dir, command);
+                        if (file.exists() && file.canExecute()) {
+                            try {
+                                ProcessBuilder pb = new ProcessBuilder(tokens);
+                                pb.directory(new File(currentDirectory));
+                                pb.redirectErrorStream(false);
 
-                                    if (outputFile != null) {
-                                        if (appendOutput) {
-                                            pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(outputFile)));
-                                        } else {
-                                            pb.redirectOutput(new File(outputFile));
-                                        }
+                                if (outputFile != null) {
+                                    if (appendOutput) {
+                                        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(outputFile)));
                                     } else {
-                                        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                                        pb.redirectOutput(new File(outputFile));
                                     }
+                                } else {
+                                    pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                                }
 
-                                    if (errorFile != null) {
-                                        if (appendError) {
-                                            pb.redirectError(ProcessBuilder.Redirect.appendTo(new File(errorFile)));
-                                        } else {
-                                            pb.redirectError(new File(errorFile));
-                                        }
+                                if (errorFile != null) {
+                                    if (appendError) {
+                                        pb.redirectError(ProcessBuilder.Redirect.appendTo(new File(errorFile)));
                                     } else {
-                                        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                                        pb.redirectError(new File(errorFile));
                                     }
+                                } else {
+                                    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                                }
 
-                                    Process process = pb.start();
-                                    process.waitFor();
-                                    executed = true;
-                                    break;
-                                } catch (IOException | InterruptedException e) {
-                                    String errorMsg = command + ": " + e.getMessage();
-                                    if (errorFile != null) {
-                                        try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                            errorWriter.write(errorMsg + "\n");
-                                        } catch (IOException ignored) {}
-                                    } else {
-                                        System.err.println(errorMsg);
-                                    }
+                                Process process = pb.start();
+                                process.waitFor();
+                                executed = true;
+                                break;
+                            } catch (IOException | InterruptedException e) {
+                                String errorMsg = command + ": " + e.getMessage();
+                                if (errorFile != null) {
+                                    try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                                        errorWriter.write(errorMsg + "\n");
+                                    } catch (IOException ignored) {}
+                                } else {
+                                    System.err.println(errorMsg);
                                 }
                             }
-                        }
-                    }
-
-                    if (!executed) {
-                        String errorMsg = command + ": command not found";
-                        if (errorFile != null) {
-                            try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
-                                errorWriter.write(errorMsg + "\n");
-                            } catch (IOException e) {
-                                System.err.println(command + ": " + errorFile + ": No such file or directory");
-                            }
-                        } else {
-                            System.err.println(errorMsg);
                         }
                     }
                 }
 
-                System.out.print("$ ");
-            } else if (input != -1) {  // Regular character input
-                currentInput.append((char)input);
+                if (!executed) {
+                    String errorMsg = command + ": command not found";
+                    if (errorFile != null) {
+                        try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                            errorWriter.write(errorMsg + "\n");
+                        } catch (IOException e) {
+                            System.err.println(command + ": " + errorFile + ": No such file or directory");
+                        }
+                    } else {
+                        System.err.println(errorMsg);
+                    }
+                }
             }
+
+            System.out.print("$ ");
         }
     }
 
