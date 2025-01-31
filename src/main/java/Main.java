@@ -27,13 +27,114 @@ public class Main {
                 continue;
             }
 
-            // Parse the command line using LineParser
-            CommandLine cmdLine = new LineParser(input).parse();
-            List<String> commandTokens = cmdLine.getTokens();
-            String outputFile = cmdLine.getOutputFile();
-            String errorFile = cmdLine.getErrorFile();
-            boolean appendOutput = cmdLine.isAppendOutput();
-            boolean appendError = cmdLine.isAppendError();
+            // Parse input to extract command tokens and redirection
+            String outputFile = null;
+            String errorFile = null;
+            boolean appendOutput = false;
+            boolean appendError = false;
+            List<String> tokens = new ArrayList<>();
+
+            // Parse input preserving quoted strings with proper escape handling
+            StringBuilder currentToken = new StringBuilder();
+            boolean inDoubleQuotes = false;
+            boolean inSingleQuotes = false;
+            boolean escaped = false;
+
+            for (int i = 0; i < input.length(); i++) {
+                char c = input.charAt(i);
+
+                if (escaped) {
+                    if (inDoubleQuotes) {
+                        // In double quotes, only certain characters are escaped
+                        if (c == 'n') {
+                            currentToken.append('\n');
+                        } else if (c == 't') {
+                            currentToken.append('\t');
+                        } else if (c == 'r') {
+                            currentToken.append('\r');
+                        } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
+                            currentToken.append(c);
+                        } else {
+                            // Keep the backslash for other characters
+                            currentToken.append('\\').append(c);
+                        }
+                    } else if (inSingleQuotes) {
+                        // In single quotes, backslashes are treated literally
+                        currentToken.append('\\').append(c);
+                    } else {
+                        // Outside quotes, preserve backslash for special characters
+                        if (c == ' ' || c == '"' || c == '\'' || c == '\\') {
+                            currentToken.append(c);
+                        } else {
+                            // For non-special characters, just append the character
+                            currentToken.append(c);
+                        }
+                    }
+                    escaped = false;
+                    continue;
+                }
+
+                if (c == '\\' && !inSingleQuotes) {
+                    escaped = true;
+                    continue;
+                }
+
+                if (c == '"' && !inSingleQuotes) {
+                    inDoubleQuotes = !inDoubleQuotes;
+                    continue;
+                }
+
+                if (c == '\'' && !inDoubleQuotes) {
+                    inSingleQuotes = !inSingleQuotes;
+                    continue;
+                }
+
+                if (c == ' ' && !inDoubleQuotes && !inSingleQuotes) {
+                    if (currentToken.length() > 0) {
+                        tokens.add(currentToken.toString());
+                        currentToken.setLength(0);
+                    }
+                } else {
+                    currentToken.append(c);
+                }
+            }
+
+            if (currentToken.length() > 0) {
+                tokens.add(currentToken.toString());
+            }
+
+            // Process redirection operators
+            List<String> commandTokens = new ArrayList<>();
+            for (int i = 0; i < tokens.size(); i++) {
+                String token = tokens.get(i);
+                if (token.equals("2>")) {
+                    if (i + 1 < tokens.size()) {
+                        errorFile = tokens.get(i + 1);
+                        appendError = false;
+                        i++;
+                    }
+                } else if (token.equals("2>>")) {
+                    if (i + 1 < tokens.size()) {
+                        errorFile = tokens.get(i + 1);
+                        appendError = true;
+                        i++;
+                    }
+                } else if (token.equals(">>") || token.equals("1>>")) {
+                    if (i + 1 < tokens.size()) {
+                        outputFile = tokens.get(i + 1);
+                        appendOutput = true;
+                        i++;
+                    }
+                } else if (token.equals(">") || token.equals("1>")) {
+                    if (i + 1 < tokens.size()) {
+                        outputFile = tokens.get(i + 1);
+                        appendOutput = false;
+                        i++;
+                    }
+                } else {
+                    commandTokens.add(token);
+                }
+            }
 
             if (commandTokens.isEmpty()) {
                 System.out.print("$ ");
@@ -43,7 +144,7 @@ public class Main {
             String command = commandTokens.get(0);
             boolean isBuiltin = builtins.contains(command);
 
-            // Create directories for redirection files if necessary
+            // Create directories for redirection files before executing commands
             if (errorFile != null) {
                 File errorFileObj = new File(errorFile);
                 File parentDir = errorFileObj.getParentFile();
@@ -86,6 +187,7 @@ public class Main {
                 }
             }
 
+            // Handle builtin commands
             if (isBuiltin) {
                 if (command.equals("echo")) {
                     StringBuilder output = new StringBuilder();
@@ -126,13 +228,22 @@ public class Main {
                     File file = new File(dir, command);
                     if (file.exists() && file.canExecute()) {
                         try {
-                            ProcessBuilder pb = new ProcessBuilder(commandTokens);
+                            // Create copy of command tokens with properly escaped arguments
+                            List<String> escapedTokens = new ArrayList<>();
+                            escapedTokens.add(command);
+                            for (int i = 1; i < commandTokens.size(); i++) {
+                                String token = commandTokens.get(i);
+                                // Preserve backslash escapes in the token
+                                escapedTokens.add(token);
+                            }
+
+                            ProcessBuilder pb = new ProcessBuilder(escapedTokens);
                             pb.directory(new File(currentDirectory));
                             pb.redirectErrorStream(false);
 
                             Process process = pb.start();
 
-                            // Redirect stderr
+                            // Handle stderr redirection
                             if (errorFile != null) {
                                 try (
                                     BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
@@ -152,7 +263,7 @@ public class Main {
                                 }
                             }
 
-                            // Redirect stdout
+                            // Handle stdout
                             try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                                 String outputLine;
                                 List<String> outputLines = new ArrayList<>();
