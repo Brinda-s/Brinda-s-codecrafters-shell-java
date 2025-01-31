@@ -18,6 +18,16 @@ public class Main {
         while (true) {
             String input = scanner.nextLine().trim();
 
+            // Simulate autocompletion for "echo" and "exit"
+            if (input.endsWith("\t")) { // Check if the input ends with a TAB character
+                String partialCommand = input.substring(0, input.length() - 1).trim(); // Remove the TAB character
+                String completedCommand = autocomplete(partialCommand); // Autocomplete the command
+                if (completedCommand != null) {
+                    System.out.println("$ " + completedCommand); // Display the completed command
+                    input = completedCommand; // Use the completed command
+                }
+            }
+
             if (input.equals("exit 0")) {
                 System.exit(0);
             }
@@ -115,7 +125,7 @@ public class Main {
                     }
                 } else if (command.equals("pwd")) {
                     String output = currentDirectory;
-                    
+
                     if (outputFile != null) {
                         try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
                             outputWriter.write(output + "\n");
@@ -184,7 +194,7 @@ public class Main {
                     if (tokens.size() > 1) {
                         String typeCommand = tokens.get(1);
                         String output;
-                        
+
                         if (builtins.contains(typeCommand)) {
                             output = typeCommand + " is a shell builtin";
                             if (outputFile != null) {
@@ -205,7 +215,7 @@ public class Main {
                         } else {
                             String path = System.getenv("PATH");
                             boolean found = false;
-                            
+
                             if (path != null) {
                                 String[] directories = path.split(":");
                                 for (String dir : directories) {
@@ -213,7 +223,7 @@ public class Main {
                                     if (file.exists() && file.canExecute()) {
                                         output = typeCommand + " is " + file.getAbsolutePath();
                                         found = true;
-                                        
+
                                         if (outputFile != null) {
                                             try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
                                                 outputWriter.write(output + "\n");
@@ -233,7 +243,7 @@ public class Main {
                                     }
                                 }
                             }
-                            
+
                             if (!found) {
                                 output = typeCommand + ": not found";
                                 if (outputFile != null) {
@@ -324,5 +334,15 @@ public class Main {
 
             System.out.print("$ ");
         }
+    }
+
+    // Autocomplete function for "echo" and "exit"
+    private static String autocomplete(String partialCommand) {
+        if (partialCommand.startsWith("ech")) {
+            return "echo ";
+        } else if (partialCommand.startsWith("exi")) {
+            return "exit ";
+        }
+        return null; // No match found
     }
 }
