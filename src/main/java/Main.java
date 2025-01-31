@@ -83,9 +83,10 @@ public class Main {
                         appendOutput = true;
                         i++;
                     }
-                } else if (token.equals(">")) {
+                } else if (token.equals(">") || token.equals("1>")) {
                     if (i + 1 < tokens.size()) {
                         outputFile = tokens.get(i + 1);
+                        appendOutput = false;
                         i++;
                     }
                 } else {
@@ -214,13 +215,23 @@ public class Main {
                             // Handle stdout
                             try (BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                                 String outputLine;
+                                List<String> outputLines = new ArrayList<>();
+                                
+                                // Collect all output lines first
                                 while ((outputLine = outputReader.readLine()) != null) {
-                                    if (outputFile != null) {
-                                        try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
-                                            outputWriter.write(outputLine + "\n");
+                                    outputLines.add(outputLine);
+                                }
+                                
+                                // Write the output
+                                if (outputFile != null) {
+                                    try (FileWriter outputWriter = new FileWriter(outputFile, appendOutput)) {
+                                        for (String line : outputLines) {
+                                            outputWriter.write(line + "\n");
                                         }
-                                    } else {
-                                        System.out.println(outputLine);
+                                    }
+                                } else {
+                                    for (String line : outputLines) {
+                                        System.out.println(line);
                                     }
                                 }
                             }
