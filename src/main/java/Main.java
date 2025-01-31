@@ -64,11 +64,14 @@ public class Main {
                         currentToken.append('\\').append(c);
                     } else {
                         // Outside quotes, preserve backslash for special characters
-                        if (c == ' ' || c == '"' || c == '\'' || c == '\\') {
-                            currentToken.append(c);
+                        if (c == 'n' || c == 't' || c == 'r' || 
+                            c == ' ' || c == '"' || c == '\'' || c == '\\' || 
+                            Character.isLetterOrDigit(c) || c == '/' || c == '.' || 
+                            c == '_' || c == '-') {
+                            currentToken.append('\\').append(c);
                         } else {
                             // For non-special characters, just append the character
-                            currentToken.append(c);
+                            currentToken.append('\\').append(c);
                         }
                     }
                     escaped = false;
