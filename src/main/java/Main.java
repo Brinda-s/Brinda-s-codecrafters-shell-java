@@ -31,13 +31,15 @@ public class Main {
             String outputFile = null;
             String errorFile = null;
             boolean appendOutput = false;
+            boolean appendError = false;
             List<String> tokens = new ArrayList<>();
-            
+
             String[] parts = input.split(" ");
             for (int i = 0; i < parts.length; i++) {
                 if (parts[i].equals("2>>")) {
                     if (i + 1 < parts.length) {
                         errorFile = parts[i + 1];
+                        appendError = true;
                         i++;
                     }
                 } else if (parts[i].equals(">>")) {
@@ -55,7 +57,7 @@ public class Main {
                     tokens.add(parts[i]);
                 }
             }
-            
+
             if (tokens.isEmpty()) {
                 System.out.print("$ ");
                 continue;
@@ -80,7 +82,7 @@ public class Main {
 
             // Handle builtin commands
             if (isBuiltin) {
-                handleBuiltinCommand(tokens, outputFile, errorFile, appendOutput, currentDirectory);
+                handleBuiltinCommand(tokens, outputFile, errorFile, appendOutput, appendError, currentDirectory);
                 System.out.print("$ ");
                 continue;
             }
@@ -100,9 +102,10 @@ public class Main {
                             Process process = pb.start();
 
                             // Create final copies of the file paths for the lambda
-                            final String finalErrorFile = errorFile;
-                            final String finalOutputFile = outputFile;
-                            final boolean finalAppendOutput = appendOutput;
+                            final String finalErrorFile = errorFile; // Final copy for lambda
+                            final String finalOutputFile = outputFile; // Final copy for lambda
+                            final boolean finalAppendOutput = appendOutput; // Final copy for lambda
+                            final boolean finalAppendError = appendError; // Final copy for lambda
 
                             // Handle stderr first
                             Thread errorThread = new Thread(() -> {
@@ -110,7 +113,7 @@ public class Main {
                                     String errorLine;
                                     while ((errorLine = errorReader.readLine()) != null) {
                                         if (finalErrorFile != null) {
-                                            try (FileWriter errorWriter = new FileWriter(finalErrorFile, true)) {
+                                            try (FileWriter errorWriter = new FileWriter(finalErrorFile, finalAppendError)) {
                                                 errorWriter.write(errorLine + "\n");
                                                 errorWriter.flush();
                                             } catch (IOException e) {
@@ -149,7 +152,7 @@ public class Main {
                         } catch (IOException | InterruptedException e) {
                             String errorMsg = command + ": " + e.getMessage();
                             if (errorFile != null) {
-                                try (FileWriter errorWriter = new FileWriter(errorFile, true)) {
+                                try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
                                     errorWriter.write(errorMsg + "\n");
                                 }
                             } else {
@@ -164,7 +167,7 @@ public class Main {
             if (!executed) {
                 String errorMsg = command + ": command not found";
                 if (errorFile != null) {
-                    try (FileWriter errorWriter = new FileWriter(errorFile, true)) {
+                    try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
                         errorWriter.write(errorMsg + "\n");
                     }
                 } else {
@@ -176,7 +179,7 @@ public class Main {
         }
     }
 
-    private static void handleBuiltinCommand(List<String> tokens, String outputFile, String errorFile, boolean appendOutput, String currentDirectory) throws IOException {
+    private static void handleBuiltinCommand(List<String> tokens, String outputFile, String errorFile, boolean appendOutput, boolean appendError, String currentDirectory) throws IOException {
         String command = tokens.get(0);
         switch (command) {
             case "echo":
@@ -196,17 +199,38 @@ public class Main {
                 }
                 break;
             case "pwd":
-                System.out.println(currentDirectory);
+                String pwdOutput = currentDirectory;
+                if (outputFile != null) {
+                    try (FileWriter writer = new FileWriter(outputFile, appendOutput)) {
+                        writer.write(pwdOutput + "\n");
+                    }
+                } else {
+                    System.out.println(pwdOutput);
+                }
                 break;
             case "cd":
                 if (tokens.size() < 2) {
-                    System.err.println("cd: missing argument");
+                    String errorMsg = "cd: missing argument";
+                    if (errorFile != null) {
+                        try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                            errorWriter.write(errorMsg + "\n");
+                        }
+                    } else {
+                        System.err.println(errorMsg);
+                    }
                 } else {
                     File dir = new File(tokens.get(1));
                     if (dir.exists() && dir.isDirectory()) {
                         System.setProperty("user.dir", dir.getAbsolutePath());
                     } else {
-                        System.err.println("cd: " + tokens.get(1) + ": No such file or directory");
+                        String errorMsg = "cd: " + tokens.get(1) + ": No such file or directory";
+                        if (errorFile != null) {
+                            try (FileWriter errorWriter = new FileWriter(errorFile, appendError)) {
+                                errorWriter.write(errorMsg + "\n");
+                            }
+                        } else {
+                            System.err.println(errorMsg);
+                        }
                     }
                 }
                 break;
