@@ -32,70 +32,11 @@ public class Main {
             String errorFile = null;
             boolean appendOutput = false;
             boolean appendError = false;
-            List<String> tokens = new ArrayList<>();
+            List<String> tokens = parseCommand(input);
 
-            // Parse input preserving quoted strings with proper escape handling
-            StringBuilder currentToken = new StringBuilder();
-            boolean inDoubleQuotes = false;
-            boolean inSingleQuotes = false;
-            boolean escaped = false;
-
-            for (int i = 0; i < input.length(); i++) {
-                char c = input.charAt(i);
-
-                if (escaped) {
-                    if (inDoubleQuotes) {
-                        // In double quotes, only certain characters are escaped
-                        if (c == 'n') {
-                            currentToken.append('\n');
-                        } else if (c == 't') {
-                            currentToken.append('\t');
-                        } else if (c == 'r') {
-                            currentToken.append('\r');
-                        } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
-                            currentToken.append(c);
-                        } else {
-                            // Keep the backslash for other characters
-                            currentToken.append('\\').append(c);
-                        }
-                    } else if (inSingleQuotes) {
-                        // In single quotes, backslashes are treated literally
-                        currentToken.append('\\').append(c);
-                    } else {
-                        // Outside quotes, escape the next character
-                        currentToken.append(c);
-                    }
-                    escaped = false;
-                    continue;
-                }
-
-                if (c == '\\' && !inSingleQuotes) {
-                    escaped = true;
-                    continue;
-                }
-
-                if (c == '"' && !inSingleQuotes) {
-                    inDoubleQuotes = !inDoubleQuotes;
-                    continue;
-                }
-
-                if (c == '\'' && !inDoubleQuotes) {
-                    inSingleQuotes = !inSingleQuotes;
-                    continue;
-                }
-
-                if (c == ' ' && !inDoubleQuotes && !inSingleQuotes) {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
-                } else {
-                    currentToken.append(c);
-                }
-            }
-
-            if (currentToken.length() > 0) {
-                tokens.add(currentToken.toString());
+            if (tokens.isEmpty()) {
+                System.out.print("$ ");
+                continue;
             }
 
             // Process redirection operators
@@ -303,5 +244,78 @@ public class Main {
 
             System.out.print("$ ");
         }
+    }
+
+    private static List<String> parseCommand(String input) {
+        List<String> tokens = new ArrayList<>();
+        StringBuilder currentToken = new StringBuilder();
+        boolean inDoubleQuotes = false;
+        boolean inSingleQuotes = false;
+        boolean escaped = false;
+
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+
+            if (escaped) {
+                // In single quotes, backslashes are always literal
+                if (inSingleQuotes) {
+                    currentToken.append('\\').append(c);
+                }
+                // In double quotes, only certain characters are escaped
+                else if (inDoubleQuotes) {
+                    if (c == 'n') {
+                        currentToken.append('\n');
+                    } else if (c == 't') {
+                        currentToken.append('\t');
+                    } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
+                        currentToken.append(c);
+                    } else {
+                        // Preserve backslash for unrecognized escape sequences
+                        currentToken.append('\\').append(c);
+                    }
+                }
+                // Outside quotes, preserve backslash for special characters
+                else {
+                    if (c == ' ' || c == '"' || c == '\'' || c == '\\' || c == '>' || c == '<' || c == '|' || c == '&') {
+                        currentToken.append(c);
+                    } else {
+                        // For non-special characters, treat backslash literally
+                        currentToken.append('\\').append(c);
+                    }
+                }
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\' && !inSingleQuotes) {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '"' && !inSingleQuotes) {
+                inDoubleQuotes = !inDoubleQuotes;
+                continue;
+            }
+
+            if (c == '\'' && !inDoubleQuotes) {
+                inSingleQuotes = !inSingleQuotes;
+                continue;
+            }
+
+            if (!inDoubleQuotes && !inSingleQuotes && Character.isWhitespace(c)) {
+                if (currentToken.length() > 0) {
+                    tokens.add(currentToken.toString());
+                    currentToken.setLength(0);
+                }
+            } else {
+                currentToken.append(c);
+            }
+        }
+
+        if (currentToken.length() > 0) {
+            tokens.add(currentToken.toString());
+        }
+
+        return tokens;
     }
 }
