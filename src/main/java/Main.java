@@ -15,6 +15,7 @@ public class Main {
 
         while (true) {
             System.out.print("$ ");
+            System.out.flush();
             
             // Read character by character to handle special keys
             int ch;
@@ -30,8 +31,10 @@ public class Main {
                         String completed = handleTabCompletion(partial, builtins);
                         
                         if (completed != null && !completed.equals(partial)) {
-                            // Clear the current line and print the completed command
-                            System.out.print("\r$ " + completed + " ");
+                            // Clear the current line
+                            System.out.print("\r");
+                            // Print prompt and completed command
+                            System.out.print("$ " + completed + " ");
                             System.out.flush();
                             currentInput = new StringBuilder(completed + " ");
                         }
