@@ -338,11 +338,11 @@ public class Main {
 
     // Autocomplete function for "echo" and "exit"
     private static String autocomplete(String partialCommand) {
-        if (partialCommand.startsWith("ech")) {
+        if (partialCommand.equals("ech")) {
             return "echo ";
-        } else if (partialCommand.startsWith("exi")) {
+        } else if (partialCommand.equals("exi")) {
             return "exit ";
         }
-        return null; // No match found
+        return null;
     }
 }
