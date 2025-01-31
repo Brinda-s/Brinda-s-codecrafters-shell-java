@@ -1,5 +1,3 @@
-
-
 import java.io.*;
 import java.util.*;
 
@@ -72,20 +70,15 @@ class LineParser {
                 if (c == SINGLE) {
                     inSingleQuotes = false;
                 } else {
-                    // Inside single quotes, everything is literal, including backslashes
                     currentToken.append(c);
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
-                    // In double quotes, only certain characters are escaped
-                    if (c == 'n') {
-                        currentToken.append('\n');
-                    } else if (c == 't') {
-                        currentToken.append('\t');
-                    } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
+                    if (c == DOUBLE || c == ESCAPE || c == '$' || c == '`') {
                         currentToken.append(c);
+                    } else if (c == '\n') {
+                        // Line continuation, do nothing
                     } else {
-                        // Keep both backslash and character for other cases
                         currentToken.append(ESCAPE).append(c);
                     }
                     escaped = false;
@@ -98,12 +91,8 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    // Outside quotes, only whitespace and quotes should be escaped
-                    // For all other characters, keep both the backslash and the character
-                    if (c == ' ' || c == '"' || c == '\'' || c == '\\') {
+                    if (c != '\n') {
                         currentToken.append(c);
-                    } else {
-                        currentToken.append(ESCAPE).append(c);
                     }
                     escaped = false;
                 } else if (c == ESCAPE) {
@@ -114,33 +103,46 @@ class LineParser {
                     inDoubleQuotes = true;
                 } else if (c == '2' && index + 2 < input.length() && 
                          input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
-                    handleCurrentToken(tokens, currentToken, true);
+                    handleRedirect(currentToken, tokens, foundRedirect);
                     foundRedirect = true;
                     isErrorRedirect = true;
                     appendError = true;
                     index += 2;
                 } else if (c == '2' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
-                    handleCurrentToken(tokens, currentToken, true);
+                    handleRedirect(currentToken, tokens, foundRedirect);
                     foundRedirect = true;
                     isErrorRedirect = true;
                     index++;
-                } else if ((c == '>' && index + 1 < input.length() && input.charAt(index + 1) == '>') ||
-                         (c == '1' && index + 2 < input.length() && 
-                          input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>')) {
-                    handleCurrentToken(tokens, currentToken, true);
+                } else if (c == '1' && index + 2 < input.length() && 
+                         input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
+                    handleRedirect(currentToken, tokens, foundRedirect);
                     foundRedirect = true;
                     isErrorRedirect = false;
                     appendOutput = true;
-                    index += (c == '>' ? 1 : 2);
+                    index += 2;
+                } else if (c == '>' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
+                    handleRedirect(currentToken, tokens, foundRedirect);
+                    foundRedirect = true;
+                    isErrorRedirect = false;
+                    appendOutput = true;
+                    index++;
                 } else if (c == '>' || (c == '1' && index + 1 < input.length() && 
                          input.charAt(index + 1) == '>')) {
-                    handleCurrentToken(tokens, currentToken, true);
+                    handleRedirect(currentToken, tokens, foundRedirect);
                     foundRedirect = true;
                     isErrorRedirect = false;
                     if (c == '1') index++;
                 } else if (Character.isWhitespace(c)) {
-                    handleCurrentToken(tokens, currentToken, foundRedirect);
-                    foundRedirect = false;
+                    if (currentToken.length() > 0) {
+                        if (foundRedirect) {
+                            setRedirectFile(currentToken, isErrorRedirect, errorFile, outputFile);
+                            currentToken.setLength(0);
+                            foundRedirect = false;
+                        } else {
+                            tokens.add(currentToken.toString());
+                            currentToken.setLength(0);
+                        }
+                    }
                 } else {
                     currentToken.append(c);
                 }
@@ -149,14 +151,9 @@ class LineParser {
             index++;
         }
         
-        // Handle any remaining token
         if (currentToken.length() > 0) {
             if (foundRedirect) {
-                if (isErrorRedirect) {
-                    errorFile = currentToken.toString();
-                } else {
-                    outputFile = currentToken.toString();
-                }
+                setRedirectFile(currentToken, isErrorRedirect, errorFile, outputFile);
             } else {
                 tokens.add(currentToken.toString());
             }
@@ -164,15 +161,19 @@ class LineParser {
         
         return new CommandLine(tokens, outputFile, errorFile, appendOutput, appendError);
     }
-    
-    private void handleCurrentToken(List<String> tokens, StringBuilder currentToken, boolean foundRedirect) {
-        if (currentToken.length() > 0) {
-            if (foundRedirect) {
-                // This will be handled by the caller
-            } else {
-                tokens.add(currentToken.toString());
-            }
+
+    private void handleRedirect(StringBuilder currentToken, List<String> tokens, boolean foundRedirect) {
+        if (currentToken.length() > 0 && !foundRedirect) {
+            tokens.add(currentToken.toString());
             currentToken.setLength(0);
+        }
+    }
+
+    private void setRedirectFile(StringBuilder currentToken, boolean isErrorRedirect, String errorFile, String outputFile) {
+        if (isErrorRedirect) {
+            errorFile = currentToken.toString();
+        } else {
+            outputFile = currentToken.toString();
         }
     }
 }
