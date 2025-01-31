@@ -1,4 +1,3 @@
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,8 +52,9 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    // Outside quotes, preserve the backslash and character literally
-                    currentToken.append(ESCAPE).append(c);
+                    // Outside quotes, just append the character that was escaped
+                    // This ensures \n becomes 'n', \t becomes 't', etc.
+                    currentToken.append(c);
                     escaped = false;
                 } else if (c == ESCAPE) {
                     escaped = true;
@@ -138,34 +138,35 @@ class LineParser {
         
         return new CommandLine(tokens, outputFile, errorFile, appendOutput);
     }
-}
 
-class CommandLine {
-    private final List<String> tokens;
-    private final String outputFile;
-    private final String errorFile;
-    private final boolean appendOutput;
+    public class CommandLine {
+        private final List<String> tokens;
+        private final String outputFile;
+        private final String errorFile;
+        private final boolean appendOutput;
     
-    public CommandLine(List<String> tokens, String outputFile, String errorFile, boolean appendOutput) {
-        this.tokens = tokens;
-        this.outputFile = outputFile;
-        this.errorFile = errorFile;
-        this.appendOutput = appendOutput;
+        public CommandLine(List<String> tokens, String outputFile, String errorFile, boolean appendOutput) {
+            this.tokens = tokens;
+            this.outputFile = outputFile;
+            this.errorFile = errorFile;
+            this.appendOutput = appendOutput;
+        }
+    
+        public List<String> getTokens() {
+            return tokens;
+        }
+    
+        public String getOutputFile() {
+            return outputFile;
+        }
+    
+        public String getErrorFile() {
+            return errorFile;
+        }
+    
+        public boolean isAppendOutput() {
+            return appendOutput;
+        }
     }
     
-    public List<String> getTokens() {
-        return tokens;
-    }
-    
-    public String getOutputFile() {
-        return outputFile;
-    }
-    
-    public String getErrorFile() {
-        return errorFile;
-    }
-    
-    public boolean isAppendOutput() {
-        return appendOutput;
-    }
 }
