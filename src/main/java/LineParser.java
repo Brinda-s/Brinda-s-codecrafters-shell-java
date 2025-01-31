@@ -1,5 +1,3 @@
-
-
 import java.io.*;
 import java.util.*;
 
@@ -72,12 +70,10 @@ class LineParser {
                 if (c == SINGLE) {
                     inSingleQuotes = false;
                 } else {
-                    // Inside single quotes, everything is literal, including backslashes
                     currentToken.append(c);
                 }
             } else if (inDoubleQuotes) {
                 if (escaped) {
-                    // In double quotes, only certain characters are escaped
                     if (c == 'n') {
                         currentToken.append('\n');
                     } else if (c == 't') {
@@ -85,7 +81,6 @@ class LineParser {
                     } else if (c == '"' || c == '\\' || c == '$' || c == '`') {
                         currentToken.append(c);
                     } else {
-                        // Keep both backslash and character for other cases
                         currentToken.append(ESCAPE).append(c);
                     }
                     escaped = false;
@@ -98,8 +93,12 @@ class LineParser {
                 }
             } else {
                 if (escaped) {
-                    // Outside quotes, preserve both backslash and character
-                    currentToken.append(ESCAPE).append(c);
+                    if (c == ' ' || c == '"' || c == '\'' || c == '\\') {
+                        currentToken.append(c);
+                    } else {
+                        // For non-special characters, preserve both backslash and character
+                        currentToken.append(ESCAPE).append(c);
+                    }
                     escaped = false;
                 } else if (c == ESCAPE) {
                     escaped = true;
@@ -107,67 +106,30 @@ class LineParser {
                     inSingleQuotes = true;
                 } else if (c == DOUBLE) {
                     inDoubleQuotes = true;
-                } else if (c == '2' && index + 2 < input.length() && 
-                         input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
+                } else if (c == '2' && lookahead(">>")) {
+                    addCurrentToken(tokens, currentToken, foundRedirect, isErrorRedirect);
                     foundRedirect = true;
                     isErrorRedirect = true;
                     appendError = true;
                     index += 2;
-                } else if (c == '2' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
+                } else if (c == '2' && lookahead(">")) {
+                    addCurrentToken(tokens, currentToken, foundRedirect, isErrorRedirect);
                     foundRedirect = true;
                     isErrorRedirect = true;
                     index++;
-                } else if (c == '1' && index + 2 < input.length() && 
-                         input.charAt(index + 1) == '>' && input.charAt(index + 2) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
-                    foundRedirect = true;
-                    isErrorRedirect = false;
-                    appendOutput = true;
-                    index += 2;
-                } else if (c == '>' && index + 1 < input.length() && input.charAt(index + 1) == '>') {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
+                } else if (c == '>' && lookahead(">")) {
+                    addCurrentToken(tokens, currentToken, foundRedirect, isErrorRedirect);
                     foundRedirect = true;
                     isErrorRedirect = false;
                     appendOutput = true;
                     index++;
-                } else if (c == '>' || (c == '1' && index + 1 < input.length() && 
-                         input.charAt(index + 1) == '>')) {
-                    if (currentToken.length() > 0) {
-                        tokens.add(currentToken.toString());
-                        currentToken.setLength(0);
-                    }
+                } else if (c == '>') {
+                    addCurrentToken(tokens, currentToken, foundRedirect, isErrorRedirect);
                     foundRedirect = true;
                     isErrorRedirect = false;
-                    if (c == '1') index++;
                 } else if (Character.isWhitespace(c)) {
-                    if (currentToken.length() > 0) {
-                        if (foundRedirect) {
-                            if (isErrorRedirect) {
-                                errorFile = currentToken.toString();
-                            } else {
-                                outputFile = currentToken.toString();
-                            }
-                            currentToken.setLength(0);
-                            foundRedirect = false;
-                        } else {
-                            tokens.add(currentToken.toString());
-                            currentToken.setLength(0);
-                        }
-                    }
+                    addCurrentToken(tokens, currentToken, foundRedirect, isErrorRedirect);
+                    foundRedirect = false;
                 } else {
                     currentToken.append(c);
                 }
@@ -191,4 +153,26 @@ class LineParser {
         
         return new CommandLine(tokens, outputFile, errorFile, appendOutput, appendError);
     }
+
+    private boolean lookahead(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            if (index + 1 + i >= input.length() || input.charAt(index + 1 + i) != s.charAt(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void addCurrentToken(List<String> tokens, StringBuilder currentToken, 
+                               boolean foundRedirect, boolean isErrorRedirect) {
+        if (currentToken.length() > 0) {
+            if (foundRedirect) {
+                // Handle redirect file paths
+            } else {
+                tokens.add(currentToken.toString());
+            }
+            currentToken.setLength(0);
+        }
+    }
 }
+
